@@ -1,0 +1,158 @@
+import { SearchParams, AnalyzedResults, SocialPost } from './apiConfig';
+
+export interface SearchOptions {
+  userTier?: 'free' | 'standard' | 'pro';
+  userId?: string;
+}
+
+export class SearchService {
+  private static readonly API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001/api';
+
+  static async performSearch(params: SearchParams, options?: SearchOptions): Promise<AnalyzedResults> {
+    try {
+      console.log('🔍 Starting search with params:', params);
+      console.log('🎯 User tier:', options?.userTier || 'free');
+      console.log('🌐 Backend URL:', this.API_BASE_URL);
+      
+      const response = await fetch(`${this.API_BASE_URL}/search`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': options?.authToken ? `Bearer ${options.authToken}` : ''
+        },
+        body: JSON.stringify({
+          query: params.query,
+          platforms: params.platforms,
+          language: params.language,
+          timeFilter: params.timeFilter
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('❌ Search API error:', errorData);
+        throw new Error(errorData.message || `Search failed: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      if (!result.success) {
+        console.error('❌ Search failed:', result.message);
+        throw new Error(result.message || 'Search failed');
+      }
+
+      console.log('🎉 Search complete!');
+      console.log(`📊 Results: ${result.data.painPoints.length} pain points, ${result.data.trendingIdeas.length} trending ideas, ${result.data.contentIdeas.length} content ideas`);
+      console.log('⏱️ Duration:', result.metadata.duration + 'ms');
+      
+      if (result.metadata.errors && result.metadata.errors.length > 0) {
+        console.warn('⚠️ Some platforms failed:', result.metadata.errors);
+      }
+
+      // Apply tier-based filtering
+      const userTier = options?.userTier || 'free';
+      const filteredResults = this.applyTierFiltering(result.data, userTier);
+      
+      console.log('✅ Analysis complete:', {
+        painPoints: filteredResults.painPoints.length,
+        trendingIdeas: filteredResults.trendingIdeas.length,
+        contentIdeas: filteredResults.contentIdeas.length,
+        tier: userTier
+      });
+
+      return filteredResults;
+
+    } catch (error) {
+      console.error('❌ Search error:', error);
+      
+      // Fallback to empty results
+      return {
+        painPoints: [],
+        trendingIdeas: [],
+        contentIdeas: []
+      };
+    }
+  }
+
+  static async testApiConnections(): Promise<{reddit: boolean, x: boolean, backend: boolean}> {
+    const results = {
+      reddit: false,
+      x: false,
+      backend: false
+    };
+
+    console.log('🧪 Testing API connections...');
+
+    try {
+      // Test backend health
+      console.log('🔍 Testing backend connection...');
+      const healthResponse = await fetch(`${this.API_BASE_URL}/search/health`);
+      if (healthResponse.ok) {
+        console.log('✅ Backend connection: OK');
+        results.backend = true;
+      }
+    } catch (error) {
+      console.error('❌ Backend connection test failed:', error);
+    }
+
+    try {
+      // Test Reddit via backend
+      console.log('🔍 Testing Reddit API via backend...');
+      const redditResponse = await fetch(`${this.API_BASE_URL}/reddit/health`);
+      if (redditResponse.ok) {
+        console.log('✅ Reddit API test: OK');
+        results.reddit = true;
+      }
+    } catch (error) {
+      console.error('❌ Reddit API test failed:', error);
+    }
+
+    try {
+      // Test X via backend
+      console.log('🐦 Testing X API via backend...');
+      const xResponse = await fetch(`${this.API_BASE_URL}/x/health`);
+      if (xResponse.ok) {
+        const xData = await xResponse.json();
+        console.log(`✅ X API test: ${xData.message}`);
+        results.x = xData.available;
+      }
+    } catch (error) {
+      console.error('❌ X API test failed:', error);
+    }
+
+    console.log('📊 API Test Results:', results);
+    return results;
+  }
+
+  /**
+   * Apply tier-based result filtering
+   * Free: 3 results per category
+   * Standard: 5 results per category  
+   * Pro: All results
+   */
+  private static applyTierFiltering(results: AnalyzedResults, userTier: string): AnalyzedResults {
+    const limits = {
+      free: 3,
+      standard: 5,
+      pro: 999
+    };
+
+    const limit = limits[userTier as keyof typeof limits] || limits.free;
+
+    return {
+      painPoints: results.painPoints.slice(0, limit),
+      trendingIdeas: results.trendingIdeas.slice(0, limit),
+      contentIdeas: results.contentIdeas.slice(0, limit)
+    };
+  }
+
+  /**
+   * Get tier limits for UI display
+   */
+  static getTierLimits(userTier: string) {
+    return {
+      maxSearches: userTier === 'free' ? 5 : userTier === 'standard' ? 10 : 999,
+      resultsPerCategory: userTier === 'free' ? 3 : userTier === 'standard' ? 5 : 999
+    };
+  }
+}

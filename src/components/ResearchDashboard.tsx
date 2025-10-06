@@ -1,0 +1,926 @@
+import React, { useState } from 'react';
+import { 
+  Search, 
+  TrendingUp as Trending, 
+  MessageSquare, 
+  Lightbulb, 
+  ExternalLink, 
+  Twitter, 
+  Youtube, 
+  ArrowLeft, 
+  Calendar, 
+  Globe, 
+  Keyboard, 
+  ChevronDown, 
+  Home, 
+  Mail,
+  Linkedin,
+  Instagram,
+  Delete,
+  Space,
+  AlertCircle,
+  Loader,
+  Sparkles,
+  Crown,
+  Circle
+} from 'lucide-react';
+import { SearchService } from '../services/searchService';
+import { SearchParams, AnalyzedResults, SocialPost } from '../services/apiConfig';
+
+interface ResearchDashboardProps {
+  onBack: () => void;
+  onHome: () => void;
+  onContact: () => void;
+  onLogin: () => void;
+  onSignUp: () => void;
+  user: { 
+    id: string;
+    name: string; 
+    email: string;
+    subscription_tier: 'free' | 'standard' | 'pro';
+    search_count: number;
+  } | null;
+  searchCount: number;
+  onSearchLimitReached: () => void;
+  onPrivacyPolicy: () => void;
+  onSearchPerformed: () => void;
+  onSignOut: () => void;
+  onShowResults: (results: AnalyzedResults, query: string) => void;
+}
+
+const ResearchDashboard: React.FC<ResearchDashboardProps> = ({
+  onBack, onHome, onContact, onLogin, onSignUp, user, searchCount, onSearchLimitReached, onPrivacyPolicy, onSearchPerformed, onSignOut, onShowResults
+}) => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedLanguage, setSelectedLanguage] = useState('en');
+  const [timeFilter, setTimeFilter] = useState('week');
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(['reddit', 'x']);
+  const [results, setResults] = useState<AnalyzedResults | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
+  const [showTimeDropdown, setShowTimeDropdown] = useState(false);
+  const [showKeyboardSettings, setShowKeyboardSettings] = useState(false);
+  const [keyboardLanguage, setKeyboardLanguage] = useState('en');
+  const [showKeyboard, setShowKeyboard] = useState(false);
+  const [virtualText, setVirtualText] = useState('');
+  const [showCustomDatePicker, setShowCustomDatePicker] = useState(false);
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
+
+  const userTier = user?.subscription_tier || 'free';
+  const tierLimits = SearchService.getTierLimits(userTier);
+
+  const languages = [
+    { code: 'en', name: 'English', flag: '🇺🇸' },
+    { code: 'es', name: 'Español', flag: '🇪🇸' },
+    { code: 'fr', name: 'Français', flag: '🇫🇷' },
+    { code: 'de', name: 'Deutsch', flag: '🇩🇪' },
+    { code: 'it', name: 'Italiano', flag: '🇮🇹' },
+    { code: 'pt', name: 'Português', flag: '🇵🇹' },
+    { code: 'ru', name: 'Русский', flag: '🇷🇺' },
+    { code: 'ja', name: '日本語', flag: '🇯🇵' },
+    { code: 'ko', name: '한국어', flag: '🇰🇷' },
+    { code: 'zh', name: '中文', flag: '🇨🇳' },
+    { code: 'ar', name: 'العربية', flag: '🇸🇦' },
+    { code: 'hi', name: 'हिन्दी', flag: '🇮🇳' },
+    { code: 'nl', name: 'Nederlands', flag: '🇳🇱' }
+  ];
+
+  const timeFilters = [
+    { value: 'hour', label: 'Past Hour' },
+    { value: 'day', label: 'Past 24 Hours' },
+    { value: 'week', label: 'Past Week' },
+    { value: 'month', label: 'Past Month' },
+    { value: 'year', label: 'Past Year' },
+    { value: 'custom', label: 'Custom Range' }
+  ];
+
+  const platforms = [
+    { id: 'reddit', name: 'Reddit', icon: '🔴', available: true },
+    { id: 'x', name: 'X (Twitter)', icon: '🐦', available: true },
+    { id: 'youtube', name: 'YouTube', icon: '📺', available: false }
+  ];
+
+  // Keyboard layouts for different languages
+  const keyboardLayouts = {
+    en: [
+      ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
+      ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'],
+      ['z', 'x', 'c', 'v', 'b', 'n', 'm']
+    ],
+    es: [
+      ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
+      ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'ñ'],
+      ['z', 'x', 'c', 'v', 'b', 'n', 'm']
+    ],
+    fr: [
+      ['a', 'z', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
+      ['q', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'm'],
+      ['w', 'x', 'c', 'v', 'b', 'n']
+    ],
+    de: [
+      ['q', 'w', 'e', 'r', 't', 'z', 'u', 'i', 'o', 'p', 'ü'],
+      ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'ö', 'ä'],
+      ['y', 'x', 'c', 'v', 'b', 'n', 'm']
+    ],
+    ru: [
+      ['й', 'ц', 'у', 'к', 'е', 'н', 'г', 'ш', 'щ', 'з', 'х'],
+      ['ф', 'ы', 'в', 'а', 'п', 'р', 'о', 'л', 'д', 'ж', 'э'],
+      ['я', 'ч', 'с', 'м', 'и', 'т', 'ь', 'б', 'ю']
+    ],
+    ar: [
+      ['ض', 'ص', 'ث', 'ق', 'ف', 'غ', 'ع', 'ه', 'خ', 'ح', 'ج'],
+      ['ش', 'س', 'ي', 'ب', 'ل', 'ا', 'ت', 'ن', 'م', 'ك', 'ط'],
+      ['ذ', 'د', 'ز', 'ر', 'و', 'ة', 'ى', 'ء']
+    ],
+    hi: [
+      ['औ', 'ै', 'ा', 'ी', 'ू', 'ब', 'ह', 'ग', 'द', 'ज', 'ड'],
+      ['ो', 'े', '्', 'ि', 'ु', 'प', 'र', 'क', 'त', 'च', 'ट'],
+      ['ॉ', 'ं', 'म', 'न', 'व', 'ल', 'स', 'य']
+    ],
+    zh: [
+      ['拼', '音', '输', '入', '法', '中', '文', '键', '盘', '布', '局'],
+      ['汉', '字', '输', '入', '方', '式', '简', '体', '中', '文'],
+      ['繁', '体', '字', '符', '输', '入']
+    ],
+    ja: [
+      ['あ', 'か', 'さ', 'た', 'な', 'は', 'ま', 'や', 'ら', 'わ'],
+      ['い', 'き', 'し', 'ち', 'に', 'ひ', 'み', 'り', 'を'],
+      ['う', 'く', 'す', 'つ', 'ぬ', 'ふ', 'む', 'ゆ', 'る', 'ん']
+    ],
+    ko: [
+      ['ㅂ', 'ㅈ', 'ㄷ', 'ㄱ', 'ㅅ', 'ㅛ', 'ㅕ', 'ㅑ', 'ㅐ', 'ㅔ'],
+      ['ㅁ', 'ㄴ', 'ㅇ', 'ㄹ', 'ㅎ', 'ㅗ', 'ㅓ', 'ㅏ', 'ㅣ'],
+      ['ㅋ', 'ㅌ', 'ㅊ', 'ㅍ', 'ㅠ', 'ㅜ', 'ㅡ']
+    ],
+    nl: [
+      ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
+      ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'],
+      ['z', 'x', 'c', 'v', 'b', 'n', 'm']
+    ]
+  };
+
+  // Removed problematic useEffect that was causing infinite loading
+
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) return;
+
+    // Check search limits based on user tier
+    if (!user && searchCount >= tierLimits.maxSearches) {
+      onSearchLimitReached();
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const searchParams: SearchParams = {
+        query: searchQuery.trim(),
+        language: selectedLanguage,
+        timeFilter,
+        platforms: selectedPlatforms
+      };
+
+      console.log('🔍 Performing search with params:', searchParams);
+      
+      const searchResults = await SearchService.performSearch(searchParams, { userTier });
+      setResults(searchResults);
+      
+      // Increment search count
+      onSearchPerformed();
+      
+      // Call the callback to show results
+      onShowResults(searchResults, searchQuery);
+      
+      if (!searchResults.painPoints.length && !searchResults.trendingIdeas.length && !searchResults.contentIdeas.length) {
+        setError('No results found. Try adjusting your search terms or time filter.');
+      }
+    } catch (err) {
+      console.error('Search error:', err);
+      setError('An error occurred while searching. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+
+  const handlePlatformToggle = (platformId: string) => {
+    const platform = platforms.find(p => p.id === platformId);
+    if (!platform?.available) return;
+
+    setSelectedPlatforms(prev => 
+      prev.includes(platformId) 
+        ? prev.filter(id => id !== platformId)
+        : [...prev, platformId]
+    );
+  };
+
+  const handleKeyboardInput = (key: string) => {
+    if (key === 'SPACE') {
+      setVirtualText(prev => prev + ' ');
+    } else if (key === 'DELETE') {
+      setVirtualText(prev => prev.slice(0, -1));
+    } else {
+      setVirtualText(prev => prev + key);
+    }
+  };
+
+  const transferToSearch = () => {
+    setSearchQuery(virtualText);
+    setVirtualText('');
+  };
+
+  const currentLanguage = languages.find(lang => lang.code === selectedLanguage);
+  const currentKeyboardLanguage = languages.find(lang => lang.code === keyboardLanguage);
+  const currentTimeFilter = timeFilters.find(filter => filter.value === timeFilter);
+  
+  // Format custom date range display
+  const getTimeFilterLabel = () => {
+    if (timeFilter === 'custom' && customStartDate && customEndDate) {
+      const start = new Date(customStartDate).toLocaleDateString();
+      const end = new Date(customEndDate).toLocaleDateString();
+      return `${start} - ${end}`;
+    }
+    return currentTimeFilter?.label || 'Past Week';
+  };
+
+  const renderResultSection = (title: string, icon: React.ReactNode, results: SocialPost[], bgColor: string) => (
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <div className={`flex items-center gap-3 mb-4 ${bgColor} -m-6 p-4 rounded-t-lg`}>
+        {icon}
+        <h3 className="text-lg font-semibold text-white">{title}</h3>
+        <span className="ml-auto bg-white/20 px-2 py-1 rounded text-white text-sm">
+          {results.length} results
+        </span>
+      </div>
+      
+      <div className="space-y-4 mt-6">
+        {results.length === 0 ? (
+          <p className="text-gray-500 text-center py-8">No results found for this category</p>
+        ) : (
+          results.map((result) => (
+            <div key={result.id} className="border border-gray-100 rounded-lg p-4 hover:shadow-md transition-shadow">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0">
+                  {result.platform === 'reddit' && <Circle className="w-6 h-6 text-orange-500 fill-orange-500" />}
+                  {result.platform === 'x' && <Twitter className="w-6 h-6 text-blue-500" />}
+                  {result.platform === 'youtube' && <Youtube className="w-6 h-6 text-red-500" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-gray-900 text-sm leading-relaxed mb-2">{result.content}</p>
+                  <div className="flex items-center gap-4 text-xs text-gray-500">
+                    <span className="font-medium">{result.source}</span>
+                    <span>{result.engagement} engagement</span>
+                    <span>{result.timestamp}</span>
+                    {result.url && (
+                      <a 
+                        href={result.url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-blue-600 hover:text-blue-800"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        View
+                      </a>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center space-x-0">
+              <button 
+                onClick={onHome}
+                className="flex items-center hover:opacity-80 transition-opacity"
+              >
+                <img 
+                  src="/logo.png" 
+                  alt="InsightSnap Logo" 
+                  className="w-16 h-16"
+                />
+              </button>
+              <button 
+                onClick={onHome}
+                className="text-xl font-bold hover:text-indigo-600 transition-colors"
+              >
+                InsightSnap
+              </button>
+            </div>
+            
+            {/* Center Navigation */}
+            <div className="hidden md:flex items-center space-x-6">
+              <button 
+                onClick={onHome}
+                className="text-gray-600 hover:text-gray-900 font-medium transition-colors px-4 py-2"
+              >
+                Home
+              </button>
+              <button 
+                onClick={onHome}
+                className="text-gray-600 hover:text-gray-900 font-medium transition-colors px-4 py-2"
+              >
+                Pricing
+              </button>
+              <button 
+                onClick={onContact}
+                className="text-gray-600 hover:text-gray-900 font-medium transition-colors px-4 py-2"
+              >
+                Contact
+              </button>
+            </div>
+            
+            {/* Right side */}
+            <div className="flex items-center space-x-4">
+              {user ? (
+                <div className="flex items-center space-x-4">
+                  <span className="text-sm text-gray-700">Welcome, {user.name}</span>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-8 h-8 bg-indigo-600 rounded-full flex items-center justify-center">
+                      <span className="text-white text-sm font-medium">
+                        {user.name.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                    {onSignOut && (
+                      <button
+                        onClick={onSignOut}
+                        className="text-gray-600 hover:text-gray-900 font-medium transition-colors text-sm"
+                      >
+                        Sign Out
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center space-x-4">
+                  <span className="text-sm text-gray-600">
+                    {searchCount}/{tierLimits.maxSearches} searches used
+                  </span>
+                  <button
+                    onClick={onLogin}
+                    className="text-gray-600 hover:text-gray-900 font-medium transition-colors"
+                  >
+                    Log In
+                  </button>
+                  <button
+                    onClick={onSignUp}
+                    className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+                  >
+                    Sign Up
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Hero Context Section */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-4">
+            Discover What Your Audience Really Wants
+          </h1>
+          <p className="text-lg text-gray-600 max-w-3xl mx-auto mb-6">
+            Search any topic and get AI-powered insights from Reddit, X (Twitter), and YouTube comments. 
+            Uncover pain points, trending discussions, and content ideas that resonate with real people.
+          </p>
+          <div className="flex items-center justify-center gap-8 text-sm text-gray-500">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <span>Real-time data</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+              <span>AI-powered analysis</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+              <span>Actionable insights</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Search Section */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+          <div className="space-y-6">
+            {/* Search Input */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                What insights are you looking for?
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="e.g., content creation, social media marketing, productivity tips..."
+                  className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                />
+                <button
+                  onClick={handleSearch}
+                  disabled={!searchQuery.trim() || isLoading}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {isLoading ? <Loader className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}
+                </button>
+              </div>
+            </div>
+
+
+            {/* Filters */}
+            <div className="flex flex-wrap gap-4">
+              {/* Language Selector */}
+              <div className="relative">
+                <button
+                  onClick={() => {
+                    setShowLanguageDropdown(!showLanguageDropdown);
+                    setShowTimeDropdown(false);
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  <Globe className="w-4 h-4" />
+                  <span>{currentLanguage?.flag} {currentLanguage?.name}</span>
+                  <ChevronDown className="w-4 h-4" />
+                </button>
+                
+                {showLanguageDropdown && (
+                  <div className="absolute top-full left-0 mt-1 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-64 overflow-y-auto">
+                    {languages.map((language) => (
+                      <button
+                        key={language.code}
+                        onClick={() => {
+                          setSelectedLanguage(language.code);
+                          setShowLanguageDropdown(false);
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-gray-50 transition-colors"
+                      >
+                        <span>{language.flag}</span>
+                        <span>{language.name}</span>
+                        {selectedLanguage === language.code && <span className="ml-auto text-blue-600">✓</span>}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Time Filter */}
+              <div className="relative">
+                <button
+                  onClick={() => {
+                    setShowTimeDropdown(!showTimeDropdown);
+                    setShowLanguageDropdown(false);
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  <Calendar className="w-4 h-4" />
+                  <span>{getTimeFilterLabel()}</span>
+                  <ChevronDown className="w-4 h-4" />
+                </button>
+                
+                {showTimeDropdown && (
+                  <div className="absolute top-full left-0 mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                    {timeFilters.map((filter) => (
+                      <button
+                        key={filter.value}
+                        onClick={() => {
+                          if (filter.value === 'custom') {
+                            setShowCustomDatePicker(true);
+                            setShowTimeDropdown(false);
+                          } else {
+                            setTimeFilter(filter.value);
+                            setShowTimeDropdown(false);
+                            setShowCustomDatePicker(false);
+                          }
+                        }}
+                        className="w-full flex items-center justify-between px-4 py-2 text-left hover:bg-gray-50 transition-colors"
+                      >
+                        <span>{filter.label}</span>
+                        {timeFilter === filter.value && <span className="text-blue-600">✓</span>}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Custom Date Picker Modal */}
+              {showCustomDatePicker && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                  <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md mx-4">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Select Custom Date Range</h3>
+                    
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+                        <input
+                          type="date"
+                          value={customStartDate}
+                          onChange={(e) => setCustomStartDate(e.target.value)}
+                          max={customEndDate || new Date().toISOString().split('T')[0]}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+                        <input
+                          type="date"
+                          value={customEndDate}
+                          onChange={(e) => setCustomEndDate(e.target.value)}
+                          min={customStartDate}
+                          max={new Date().toISOString().split('T')[0]}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="flex gap-3 mt-6">
+                      <button
+                        onClick={() => {
+                          setShowCustomDatePicker(false);
+                          setCustomStartDate('');
+                          setCustomEndDate('');
+                        }}
+                        className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (customStartDate && customEndDate) {
+                            setTimeFilter('custom');
+                            setShowCustomDatePicker(false);
+                          }
+                        }}
+                        disabled={!customStartDate || !customEndDate}
+                        className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        Apply
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Platform Selector */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-gray-700">Platforms:</span>
+                {platforms.map((platform) => (
+                  <button
+                    key={platform.id}
+                    onClick={() => handlePlatformToggle(platform.id)}
+                    disabled={!platform.available}
+                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      selectedPlatforms.includes(platform.id)
+                        ? 'bg-blue-600 text-white'
+                        : platform.available
+                        ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        : 'bg-gray-50 text-gray-400 cursor-not-allowed'
+                    }`}
+                  >
+                    <span className="mr-1">{platform.icon}</span>
+                    {platform.name}
+                    {!platform.available && ' (Soon)'}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Keyword Suggestions */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Popular Keywords</h3>
+          <div className="flex flex-wrap gap-3 justify-center">
+            {[
+              'fitness motivation',
+              'remote work tips',
+              'digital marketing',
+              'mental health',
+              'content creation'
+            ].map((keyword) => (
+              <button
+                key={keyword}
+                onClick={() => {
+                  setSearchQuery(keyword);
+                  // Optional: Auto-focus the search input after setting the term
+                  setTimeout(() => {
+                    const searchInput = document.querySelector('input[type="text"]') as HTMLInputElement;
+                    if (searchInput) {
+                      searchInput.focus();
+                    }
+                  }, 100);
+                }}
+                className="px-6 py-3 bg-gray-100 hover:bg-indigo-50 hover:text-indigo-600 text-gray-700 rounded-full text-sm font-medium transition-colors border hover:border-indigo-200 shadow-sm"
+              >
+                {keyword}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* How It Works Guide */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+          <h3 className="text-lg font-semibold text-gray-900 mb-6 text-center">How InsightSnap Works</h3>
+          <div className="grid md:grid-cols-3 gap-8">
+            {/* Step 1 */}
+            <div className="text-center">
+              <div className="bg-indigo-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl font-bold text-indigo-600">1</span>
+              </div>
+              <h4 className="text-lg font-semibold text-gray-900 mb-2">Enter Your Keyword</h4>
+              <p className="text-gray-600 text-sm">
+                Type any topic or keyword you want to research. Our AI will search across Reddit, X (Twitter), and YouTube comments to find relevant discussions.
+              </p>
+            </div>
+
+            {/* Step 2 */}
+            <div className="text-center">
+              <div className="bg-indigo-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl font-bold text-indigo-600">2</span>
+              </div>
+              <h4 className="text-lg font-semibold text-gray-900 mb-2">AI Analyzes Content</h4>
+              <p className="text-gray-600 text-sm">
+                Our advanced AI processes thousands of posts and comments to identify patterns, trends, and audience sentiments around your topic.
+              </p>
+            </div>
+
+            {/* Step 3 */}
+            <div className="text-center">
+              <div className="bg-indigo-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl font-bold text-indigo-600">3</span>
+              </div>
+              <h4 className="text-lg font-semibold text-gray-900 mb-2">Get Actionable Insights</h4>
+              <p className="text-gray-600 text-sm">
+                Receive organized insights including top pain points, trending discussions, and content ideas to help you create resonating content.
+              </p>
+            </div>
+          </div>
+
+          {/* Arrow indicators for desktop */}
+          <div className="hidden md:flex justify-center items-center mt-8 space-x-8">
+            <div className="flex-1 border-t-2 border-dashed border-indigo-200"></div>
+            <div className="text-indigo-400">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </div>
+            <div className="flex-1 border-t-2 border-dashed border-indigo-200"></div>
+            <div className="text-indigo-400">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </div>
+            <div className="flex-1 border-t-2 border-dashed border-indigo-200"></div>
+          </div>
+        </div>
+
+        {/* Error Message */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-8">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-red-600" />
+              <p className="text-red-800">{error}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Loading State */}
+        {isLoading && (
+          <div className="text-center py-12">
+            <Loader className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
+            <p className="text-gray-600">Analyzing social media posts...</p>
+            <p className="text-sm text-gray-500 mt-2">This may take a few moments</p>
+          </div>
+        )}
+
+        {/* Results */}
+        {results && !isLoading && (
+          <div className="space-y-8">
+            {renderResultSection(
+              'Pain Points',
+              <MessageSquare className="w-5 h-5" />,
+              results.painPoints,
+              'bg-red-600'
+            )}
+            
+            {renderResultSection(
+              'Trending Ideas',
+              <Trending className="w-5 h-5" />,
+              results.trendingIdeas,
+              'bg-green-600'
+            )}
+            
+            {renderResultSection(
+              'Content Ideas',
+              <Lightbulb className="w-5 h-5" />,
+              results.contentIdeas,
+              'bg-purple-600'
+            )}
+          </div>
+        )}
+      </main>
+
+      {/* Virtual Keyboard */}
+      {showKeyboard && (
+        <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-4xl px-4">
+          <div className="bg-white rounded-xl shadow-2xl border border-gray-200 p-4">
+            {/* Keyboard Header */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-gray-700">
+                  {currentKeyboardLanguage?.flag} {currentKeyboardLanguage?.name} Keyboard
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                {virtualText && (
+                  <button
+                    onClick={transferToSearch}
+                    className="px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
+                  >
+                    Use Text
+                  </button>
+                )}
+                <button
+                  onClick={() => setShowKeyboard(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            {/* Virtual Text Display */}
+            {virtualText && (
+              <div className="mb-4 p-3 bg-gray-50 rounded-lg border">
+                <p className="text-sm text-gray-900">{virtualText}</p>
+              </div>
+            )}
+
+            {/* Keyboard Layout */}
+            <div className="space-y-2">
+              {keyboardLayouts[keyboardLanguage as keyof typeof keyboardLayouts]?.map((row, rowIndex) => (
+                <div key={rowIndex} className="flex justify-center gap-1">
+                  {row.map((key, keyIndex) => (
+                    <button
+                      key={keyIndex}
+                      onClick={() => handleKeyboardInput(key)}
+                      className="min-w-[40px] h-10 bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded text-sm font-medium transition-colors"
+                    >
+                      {key}
+                    </button>
+                  ))}
+                </div>
+              ))}
+              
+              {/* Special Keys Row */}
+              <div className="flex justify-center gap-1 mt-3">
+                <button
+                  onClick={() => handleKeyboardInput('SPACE')}
+                  className="px-8 h-10 bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded text-sm font-medium transition-colors"
+                >
+                  <Space className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => handleKeyboardInput('DELETE')}
+                  className="px-4 h-10 bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded text-sm font-medium transition-colors"
+                >
+                  <Delete className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Keyboard Settings Button */}
+      <div className="fixed bottom-4 left-4 z-50">
+        <div className="relative">
+          <button
+            onClick={() => setShowKeyboardSettings(!showKeyboardSettings)}
+            className="p-3 bg-white rounded-full shadow-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+          >
+            <Keyboard className="w-5 h-5 text-gray-700" />
+          </button>
+          
+          {showKeyboardSettings && (
+            <div className="absolute bottom-full left-0 mb-2 w-64 bg-white border border-gray-200 rounded-lg shadow-xl z-50">
+              <div className="p-4">
+                <h3 className="text-sm font-medium text-gray-900 mb-3">Keyboard Language</h3>
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {languages.map((language) => (
+                    <button
+                      key={language.code}
+                      onClick={() => {
+                        setKeyboardLanguage(language.code);
+                        setShowKeyboard(language.code !== 'en');
+                        setShowKeyboardSettings(false);
+                      }}
+                      className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-gray-50 rounded-lg transition-colors"
+                    >
+                      <span>{language.flag}</span>
+                      <span className="text-sm">{language.name}</span>
+                      {keyboardLanguage === language.code && (
+                        <span className="ml-auto text-blue-600 text-sm">✓</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Footer */}
+      <footer className="bg-gray-900 text-white py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid md:grid-cols-4 gap-8">
+            <div>
+              <div className="flex items-center space-x-0 mb-4">
+                <img 
+                  src="/logo.png" 
+                  alt="InsightSnap Logo" 
+                  className="w-16 h-16"
+                />
+                <h3 className="text-xl font-bold">InsightSnap</h3>
+              </div>
+              <p className="text-gray-400">
+                Discover what your audience really wants with AI-powered social media insights.
+              </p>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-4">Contact</h4>
+              <div className="space-y-2 text-gray-400">
+                <div className="flex items-center space-x-2">
+                  <Mail className="w-4 h-4" />
+                  <a href="mailto:contact@insightsnap.co" className="hover:text-white transition-colors">
+                    contact@insightsnap.co
+                  </a>
+                </div>
+              </div>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-4">Support</h4>
+              <ul className="space-y-2 text-gray-400">
+                <li><a href="#" className="hover:text-white transition-colors">Terms & Conditions</a></li>
+                <li>
+                  <button 
+                    onClick={onContact}
+                    className="hover:text-white transition-colors text-left w-full"
+                  >
+                    Contact Us
+                  </button>
+                </li>
+                 <li>
+                  <button 
+                    onClick={onPrivacyPolicy}
+                    className="hover:text-white transition-colors text-left w-full"
+                  >
+                    Privacy Policy
+                  </button>
+                </li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-4">Follow Us</h4>
+              <div className="flex space-x-4">
+                <a href="#" className="text-gray-400 hover:text-white transition-colors">
+                  <Twitter className="w-5 h-5" />
+                </a>
+                <a href="#" className="text-gray-400 hover:text-white transition-colors">
+                  <Youtube className="w-5 h-5" />
+                </a>
+                <a href="#" className="text-gray-400 hover:text-white transition-colors">
+                  <Instagram className="w-5 h-5" />
+                </a>
+                <a href="#" className="text-gray-400 hover:text-white transition-colors">
+                  <Linkedin className="w-5 h-5" />
+                </a>
+              </div>
+            </div>
+          </div>
+          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
+            <p>&copy; 2025 InsightSnap. All rights reserved.</p>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+};
+
+export default ResearchDashboard;
