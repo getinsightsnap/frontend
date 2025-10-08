@@ -7,30 +7,26 @@ import {
   ExternalLink, 
   Twitter, 
   Youtube, 
-  ArrowLeft, 
   Calendar, 
   Globe, 
   Keyboard, 
   ChevronDown, 
-  Home, 
   Mail,
-  Linkedin,
+  Facebook,
   Instagram,
   Delete,
   Space,
   AlertCircle,
   Loader,
-  Sparkles,
-  Crown,
   Circle
 } from 'lucide-react';
 import { SearchService } from '../services/searchService';
 import { SearchParams, AnalyzedResults, SocialPost } from '../services/apiConfig';
 
 interface ResearchDashboardProps {
-  onBack: () => void;
   onHome: () => void;
   onContact: () => void;
+  onBlog: () => void;
   onLogin: () => void;
   onSignUp: () => void;
   user: { 
@@ -43,13 +39,15 @@ interface ResearchDashboardProps {
   searchCount: number;
   onSearchLimitReached: () => void;
   onPrivacyPolicy: () => void;
+  onTermsAndConditions: () => void;
   onSearchPerformed: () => void;
   onSignOut: () => void;
   onShowResults: (results: AnalyzedResults, query: string) => void;
+  onPricing: () => void;
 }
 
 const ResearchDashboard: React.FC<ResearchDashboardProps> = ({
-  onBack, onHome, onContact, onLogin, onSignUp, user, searchCount, onSearchLimitReached, onPrivacyPolicy, onSearchPerformed, onSignOut, onShowResults
+  onHome, onContact, onBlog, onLogin, onSignUp, user, searchCount, onSearchLimitReached, onPrivacyPolicy, onTermsAndConditions, onSearchPerformed, onSignOut, onShowResults, onPricing
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLanguage, setSelectedLanguage] = useState('en');
@@ -112,17 +110,34 @@ const ResearchDashboard: React.FC<ResearchDashboardProps> = ({
     es: [
       ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
       ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'ñ'],
-      ['z', 'x', 'c', 'v', 'b', 'n', 'm']
+      ['z', 'x', 'c', 'v', 'b', 'n', 'm'],
+      ['á', 'é', 'í', 'ó', 'ú', 'ü', 'Á', 'É', 'Í', 'Ó', 'Ú', 'Ü']
     ],
     fr: [
       ['a', 'z', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
       ['q', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'm'],
-      ['w', 'x', 'c', 'v', 'b', 'n']
+      ['w', 'x', 'c', 'v', 'b', 'n'],
+      ['à', 'â', 'ç', 'é', 'è', 'ê', 'ë', 'î', 'ï', 'ô'],
+      ['ù', 'û', 'ü', 'ÿ', 'À', 'Â', 'Ç', 'É', 'È', 'Ê'],
+      ['Ë', 'Î', 'Ï', 'Ô', 'Ù', 'Û', 'Ü', 'Ÿ']
     ],
     de: [
       ['q', 'w', 'e', 'r', 't', 'z', 'u', 'i', 'o', 'p', 'ü'],
       ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'ö', 'ä'],
       ['y', 'x', 'c', 'v', 'b', 'n', 'm']
+    ],
+    pt: [
+      ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
+      ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'],
+      ['z', 'x', 'c', 'v', 'b', 'n', 'm'],
+      ['á', 'à', 'â', 'ã', 'ç', 'é', 'ê', 'í', 'ó', 'ô', 'õ', 'ú'],
+      ['Á', 'À', 'Â', 'Ã', 'Ç', 'É', 'Ê', 'Í', 'Ó', 'Ô', 'Õ', 'Ú']
+    ],
+    it: [
+      ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
+      ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'],
+      ['z', 'x', 'c', 'v', 'b', 'n', 'm'],
+      ['à', 'è', 'é', 'ì', 'ò', 'ù', 'À', 'È', 'É', 'Ì', 'Ò', 'Ù']
     ],
     ru: [
       ['й', 'ц', 'у', 'к', 'е', 'н', 'г', 'ш', 'щ', 'з', 'х'],
@@ -157,7 +172,10 @@ const ResearchDashboard: React.FC<ResearchDashboardProps> = ({
     nl: [
       ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
       ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'],
-      ['z', 'x', 'c', 'v', 'b', 'n', 'm']
+      ['z', 'x', 'c', 'v', 'b', 'n', 'm'],
+      ['á', 'à', 'ä', 'é', 'è', 'ë', 'í', 'ï', 'ó', 'ò', 'ö', 'ú'],
+      ['ù', 'ü', 'ý', 'ÿ', 'Á', 'À', 'Ä', 'É', 'È', 'Ë', 'Í', 'Ï'],
+      ['Ó', 'Ò', 'Ö', 'Ú', 'Ù', 'Ü', 'Ý', 'Ÿ']
     ]
   };
 
@@ -166,8 +184,8 @@ const ResearchDashboard: React.FC<ResearchDashboardProps> = ({
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
 
-    // Check search limits based on user tier
-    if (!user && searchCount >= tierLimits.maxSearches) {
+    // Check search limits based on user tier (for both logged-in and non-logged-in users)
+    if (searchCount >= tierLimits.maxSearches) {
       onSearchLimitReached();
       return;
     }
@@ -329,7 +347,13 @@ const ResearchDashboard: React.FC<ResearchDashboardProps> = ({
                 Home
               </button>
               <button 
-                onClick={onHome}
+                onClick={onBlog}
+                className="text-gray-600 hover:text-gray-900 font-medium transition-colors px-4 py-2"
+              >
+                Blog
+              </button>
+              <button 
+                onClick={onPricing}
                 className="text-gray-600 hover:text-gray-900 font-medium transition-colors px-4 py-2"
               >
                 Pricing
@@ -346,7 +370,9 @@ const ResearchDashboard: React.FC<ResearchDashboardProps> = ({
             <div className="flex items-center space-x-4">
               {user ? (
                 <div className="flex items-center space-x-4">
-                  <span className="text-sm text-gray-700">Welcome, {user.name}</span>
+                  <span className="text-sm text-gray-600">
+                    {searchCount}/{tierLimits.maxSearches} searches today
+                  </span>
                   <div className="flex items-center space-x-2">
                     <div className="w-8 h-8 bg-indigo-600 rounded-full flex items-center justify-center">
                       <span className="text-white text-sm font-medium">
@@ -602,9 +628,21 @@ const ResearchDashboard: React.FC<ResearchDashboardProps> = ({
           </div>
         </div>
 
+        {/* Loading State */}
+        {isLoading && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 mb-8">
+            <div className="text-center">
+              <Loader className="w-10 h-10 animate-spin mx-auto mb-4 text-blue-600" />
+              <p className="text-gray-900 font-medium text-lg">Analyzing social media posts...</p>
+              <p className="text-sm text-gray-500 mt-2">This may take a few moments</p>
+            </div>
+          </div>
+        )}
+
         {/* Keyword Suggestions */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Popular Keywords</h3>
+        {!isLoading && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Popular Keywords</h3>
           <div className="flex flex-wrap gap-3 justify-center">
             {[
               'fitness motivation',
@@ -631,9 +669,11 @@ const ResearchDashboard: React.FC<ResearchDashboardProps> = ({
               </button>
             ))}
           </div>
-        </div>
+          </div>
+        )}
 
         {/* How It Works Guide */}
+        {!isLoading && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
           <h3 className="text-lg font-semibold text-gray-900 mb-6 text-center">How InsightSnap Works</h3>
           <div className="grid md:grid-cols-3 gap-8">
@@ -688,23 +728,15 @@ const ResearchDashboard: React.FC<ResearchDashboardProps> = ({
             <div className="flex-1 border-t-2 border-dashed border-indigo-200"></div>
           </div>
         </div>
+        )}
 
         {/* Error Message */}
-        {error && (
+        {error && !isLoading && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-8">
             <div className="flex items-center gap-2">
               <AlertCircle className="w-5 h-5 text-red-600" />
               <p className="text-red-800">{error}</p>
             </div>
-          </div>
-        )}
-
-        {/* Loading State */}
-        {isLoading && (
-          <div className="text-center py-12">
-            <Loader className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
-            <p className="text-gray-600">Analyzing social media posts...</p>
-            <p className="text-sm text-gray-500 mt-2">This may take a few moments</p>
           </div>
         )}
 
@@ -852,12 +884,22 @@ const ResearchDashboard: React.FC<ResearchDashboardProps> = ({
           <div className="grid md:grid-cols-4 gap-8">
             <div>
               <div className="flex items-center space-x-0 mb-4">
-                <img 
-                  src="/logo.png" 
-                  alt="InsightSnap Logo" 
-                  className="w-16 h-16"
-                />
-                <h3 className="text-xl font-bold">InsightSnap</h3>
+                <button 
+                  onClick={onHome}
+                  className="flex items-center hover:opacity-80 transition-opacity"
+                >
+                  <img 
+                    src="/logo.png" 
+                    alt="InsightSnap Logo" 
+                    className="w-16 h-16"
+                  />
+                </button>
+                <button 
+                  onClick={onHome}
+                  className="text-xl font-bold hover:text-indigo-400 transition-colors"
+                >
+                  InsightSnap
+                </button>
               </div>
               <p className="text-gray-400">
                 Discover what your audience really wants with AI-powered social media insights.
@@ -877,7 +919,14 @@ const ResearchDashboard: React.FC<ResearchDashboardProps> = ({
             <div>
               <h4 className="font-semibold mb-4">Support</h4>
               <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-white transition-colors">Terms & Conditions</a></li>
+                <li>
+                  <button 
+                    onClick={onBlog}
+                    className="hover:text-white transition-colors text-left w-full"
+                  >
+                    Blog
+                  </button>
+                </li>
                 <li>
                   <button 
                     onClick={onContact}
@@ -894,22 +943,35 @@ const ResearchDashboard: React.FC<ResearchDashboardProps> = ({
                     Privacy Policy
                   </button>
                 </li>
+                <li>
+                  <button 
+                    onClick={onTermsAndConditions}
+                    className="hover:text-white transition-colors text-left w-full"
+                  >
+                    Terms & Conditions
+                  </button>
+                </li>
               </ul>
             </div>
             <div>
               <h4 className="font-semibold mb-4">Follow Us</h4>
               <div className="flex space-x-4">
-                <a href="#" className="text-gray-400 hover:text-white transition-colors">
+                <a href="https://x.com/InsightSnapAI" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors" title="X (Twitter)">
                   <Twitter className="w-5 h-5" />
                 </a>
-                <a href="#" className="text-gray-400 hover:text-white transition-colors">
-                  <Youtube className="w-5 h-5" />
+                <a href="https://www.facebook.com/InsightsnapAI/" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors" title="Facebook">
+                  <Facebook className="w-5 h-5" />
                 </a>
-                <a href="#" className="text-gray-400 hover:text-white transition-colors">
+                <a href="https://www.instagram.com/insightsnap.ai/" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors" title="Instagram">
                   <Instagram className="w-5 h-5" />
                 </a>
-                <a href="#" className="text-gray-400 hover:text-white transition-colors">
-                  <Linkedin className="w-5 h-5" />
+                <a href="https://www.youtube.com/@InsightSnap_AI" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors" title="YouTube">
+                  <Youtube className="w-5 h-5" />
+                </a>
+                <a href="https://www.reddit.com/user/InsightSnap/" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors" title="Reddit">
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z"/>
+                  </svg>
                 </a>
               </div>
             </div>

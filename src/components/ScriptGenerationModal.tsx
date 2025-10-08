@@ -52,6 +52,16 @@ const ScriptGenerationModal: React.FC<ScriptGenerationModalProps> = ({
     email: <Mail className="w-5 h-5" />
   };
 
+  // Get post preview for display
+  const getPostPreview = () => {
+    if (posts.length === 0) return 'Social Media Post';
+    const firstPost = posts[0];
+    const preview = firstPost.content.substring(0, 60);
+    return posts.length === 1 
+      ? `"${preview}${firstPost.content.length > 60 ? '...' : ''}"`
+      : `${posts.length} Posts from ${categoryTitles[category]}`;
+  };
+
   const handleGenerateScript = async () => {
     if (!canGenerateScript) {
       onUpgrade();
@@ -134,15 +144,27 @@ const ScriptGenerationModal: React.FC<ScriptGenerationModalProps> = ({
       <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <div className="flex items-center gap-3">
-            <Sparkles className="w-6 h-6 text-purple-600" />
-            <h2 className="text-xl font-semibold text-gray-900">
-              Generate Script for {categoryTitles[category]}
-            </h2>
+          <div className="flex-1 mr-4">
+            <div className="flex items-center gap-3 mb-2">
+              <Sparkles className="w-6 h-6 text-purple-600" />
+              <h2 className="text-xl font-semibold text-gray-900">
+                Generate Script from Post
+              </h2>
+            </div>
+            {posts.length === 1 && (
+              <p className="text-sm text-gray-600 ml-9 line-clamp-2">
+                Creating content based on: {getPostPreview()}
+              </p>
+            )}
+            {posts.length > 1 && (
+              <p className="text-sm text-gray-600 ml-9">
+                Creating content based on {posts.length} posts from {categoryTitles[category]}
+              </p>
+            )}
           </div>
           <button
             onClick={handleClose}
-            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
@@ -186,9 +208,27 @@ const ScriptGenerationModal: React.FC<ScriptGenerationModalProps> = ({
                 <h3 className="text-lg font-medium text-gray-900 mb-4">
                   Configure Your Script
                 </h3>
-                <p className="text-gray-600 mb-6">
-                  Based on {posts.length} {categoryTitles[category].toLowerCase()} from your research
-                </p>
+                
+                {/* Show the source post(s) */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                  <h4 className="text-sm font-semibold text-blue-900 mb-2">
+                    📝 Source Content:
+                  </h4>
+                  {posts.length === 1 ? (
+                    <div className="text-sm text-blue-800">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-medium">{posts[0].platform.toUpperCase()}</span>
+                        <span className="text-blue-600">•</span>
+                        <span>{posts[0].source}</span>
+                      </div>
+                      <p className="italic line-clamp-3">"{posts[0].content}"</p>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-blue-800">
+                      {posts.length} posts from {categoryTitles[category]}
+                    </p>
+                  )}
+                </div>
               </div>
 
               {/* Platform Filter */}

@@ -5,12 +5,14 @@ import ResultsPage from './components/ResultsPage';
 import AuthModal from './components/AuthModal';
 import AuthCallback from './components/AuthCallback';
 import SearchLimitModal from './components/SearchLimitModal';
+import AdminPanel from './components/AdminPanel';
 import ContactPage from './components/ContactPage';
 import PrivacyPolicy from './components/PrivacyPolicy';
+import TermsAndConditions from './components/TermsAndConditions';
+import BlogPage from './components/BlogPage';
 import { AuthService } from './services/authService';
 import { supabase } from './lib/supabase';
 import { AnalyzedResults } from './services/apiConfig';
-import { MetaPixelService } from './services/metaPixelService';
 
 interface User {
   id: string;
@@ -21,45 +23,109 @@ interface User {
 }
 
 function App() {
-  const [currentView, setCurrentView] = useState<'landing' | 'dashboard' | 'results' | 'contact' | 'privacy' | 'auth-callback'>('landing');
-  const [navigationHistory, setNavigationHistory] = useState<string[]>(['landing']);
-  const [user, setUser] = useState<User | null>(null);
+  // Initialize view based on current URL
+  const getInitialView = () => {
+    const path = window.location.pathname;
+    if (path === '/') return 'landing';
+    const view = path.slice(1);
+    if (['dashboard', 'results', 'contact', 'privacy', 'terms', 'blog'].includes(view)) {
+      return view as 'dashboard' | 'results' | 'contact' | 'privacy' | 'terms' | 'blog';
+    }
+    return 'landing';
+  };
+
+  // Check if we have a stored view in sessionStorage first
+  const getStoredOrInitialView = () => {
+    const storedView = sessionStorage.getItem('currentView');
+    if (storedView && ['landing', 'dashboard', 'results', 'contact', 'privacy', 'terms', 'blog', 'auth-callback'].includes(storedView)) {
+      console.log('✅ Restored view from session storage:', storedView);
+      return storedView as 'landing' | 'dashboard' | 'results' | 'contact' | 'privacy' | 'terms' | 'blog' | 'auth-callback';
+    }
+    return getInitialView();
+  };
+
+  // Restore results immediately on initialization (synchronous)
+  const getStoredResults = (): AnalyzedResults | null => {
+    const storedResults = sessionStorage.getItem('currentResults');
+    const storedView = sessionStorage.getItem('currentView');
+    
+    if (storedResults && storedView === 'results') {
+      try {
+        const parsed = JSON.parse(storedResults);
+        console.log('✅ Restored results synchronously from session storage');
+        return parsed;
+      } catch (error) {
+        console.error('Failed to parse stored results:', error);
+        return null;
+      }
+    }
+    return null;
+  };
+
+  const getStoredQuery = (): string => {
+    const storedView = sessionStorage.getItem('currentView');
+    if (storedView === 'results') {
+      return sessionStorage.getItem('currentSearchQuery') || '';
+    }
+    return '';
+  };
+
+  // Restore user from sessionStorage
+  const getStoredUser = (): User | null => {
+    const storedUser = sessionStorage.getItem('currentUser');
+    if (storedUser) {
+      try {
+        const parsed = JSON.parse(storedUser);
+        console.log('✅ Restored user from session storage:', parsed.email);
+        return parsed;
+      } catch (error) {
+        console.error('Failed to parse stored user:', error);
+        return null;
+      }
+    }
+    return null;
+  };
+
+  const [currentView, setCurrentView] = useState<'landing' | 'dashboard' | 'results' | 'contact' | 'privacy' | 'terms' | 'blog' | 'auth-callback'>(getStoredOrInitialView());
+  const [navigationHistory, setNavigationHistory] = useState<string[]>([getStoredOrInitialView()]);
+  const [user, setUser] = useState<User | null>(getStoredUser());
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
   const [searchLimitModalOpen, setSearchLimitModalOpen] = useState(false);
+  const [adminPanelOpen, setAdminPanelOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
   const [showEmailVerification, setShowEmailVerification] = useState(false);
   const [verificationEmail, setVerificationEmail] = useState('');
   const [resetAuthLoading, setResetAuthLoading] = useState(false);
-  
-  // Anonymous user search count state
-  const [anonymousSearchCount, setAnonymousSearchCount] = useState<number>(() => {
-    const stored = localStorage.getItem('anonymousSearchCount');
-    return stored ? parseInt(stored, 10) : 0;
-  });
-  
-  // Results state
-  const [currentResults, setCurrentResults] = useState<AnalyzedResults | null>(null);
-  const [currentSearchQuery, setCurrentSearchQuery] = useState<string>('');
 
-  // Initialize Meta Pixel on app start
-  useEffect(() => {
-    // Use your actual Meta Pixel ID
-    const PIXEL_ID = import.meta.env.VITE_META_PIXEL_ID || '782862880877552';
-    
-    if (PIXEL_ID && PIXEL_ID !== 'YOUR_PIXEL_ID_HERE') {
-      MetaPixelService.initialize(PIXEL_ID);
-    } else {
-      console.warn('⚠️ Meta Pixel ID not configured. Add VITE_META_PIXEL_ID to your .env file');
-    }
-  }, []);
+  // Results state - restore from sessionStorage if available
+  const [currentResults, setCurrentResults] = useState<AnalyzedResults | null>(getStoredResults());
+  const [currentSearchQuery, setCurrentSearchQuery] = useState<string>(getStoredQuery());
+  
 
   // Initialize app on mount
   useEffect(() => {
     const initializeApp = async () => {
       try {
         console.log('🚀 App initializing...');
+        
+        // Check if we have stored state - if so, skip initialization to preserve state
+        const storedView = sessionStorage.getItem('currentView');
+        const storedUser = sessionStorage.getItem('currentUser');
+        const hasStoredResults = sessionStorage.getItem('currentResults');
+        
+        // If we have stored state, just restore it and skip re-initialization
+        if (storedView && (storedUser || hasStoredResults)) {
+          console.log('⚠️ Stored state detected - skipping initialization to preserve state');
+          console.log('📦 Preserved view:', storedView);
+          console.log('👤 Preserved user:', storedUser ? 'Yes' : 'No');
+          console.log('📊 Preserved results:', hasStoredResults ? 'Yes' : 'No');
+          setIsLoading(false);
+          return; // Skip initialization completely
+        }
+        
+        // Check environment variables
         console.log('🔍 Environment variables check:', {
           hasSupabaseUrl: !!import.meta.env.VITE_SUPABASE_URL,
           hasSupabaseKey: !!import.meta.env.VITE_SUPABASE_ANON_KEY,
@@ -68,29 +134,22 @@ function App() {
         });
         
         // Track app initialization
-        MetaPixelService.trackFunnelStep('app_initialization', 1);
+        console.log('📊 App initialization tracked');
         
         // Test database connection
-        const dbTest = await AuthService.testDatabaseConnection();
-        if (!dbTest.success) {
-          console.error('❌ Database connection failed during app initialization');
+        try {
+          const dbTest = await AuthService.testDatabaseConnection();
+          if (!dbTest.success) {
+            console.error('❌ Database connection failed during app initialization');
+          }
+        } catch (error) {
+          console.warn('Database connection test error:', error);
         }
         
         // Check if this is an auth callback URL
         const path = window.location.pathname;
         const hash = window.location.hash;
         const currentUrl = window.location.href;
-        
-        console.log('Current URL:', currentUrl);
-        console.log('Current path:', path);
-        console.log('Current hash:', hash);
-        
-        // Clean up URL if it has the @ prefix issue
-        if (currentUrl.includes('@https://')) {
-          console.log('🔧 Fixing URL with @ prefix');
-          const cleanUrl = currentUrl.replace('@https://', 'https://');
-          window.history.replaceState({}, '', cleanUrl);
-        }
         
         // Check for auth callback conditions
         const isAuthCallback = (
@@ -113,17 +172,15 @@ function App() {
         
         if (isAuthCallback) {
           console.log('🔄 Auth callback detected - switching to auth-callback view');
-          MetaPixelService.trackFunnelStep('auth_callback', 2);
+          console.log('📊 Auth callback tracked');
           setCurrentView('auth-callback');
           setIsLoading(false);
           return;
         }
 
-        // Normal app initialization - check for existing session
-        console.log('🔍 Checking for existing session...');
-        
+        // Check for existing session
         try {
-          // Add timeout to prevent hanging
+          console.log('🔍 Checking for existing session...');
           const sessionPromise = supabase.auth.getSession();
           const timeoutPromise = new Promise((_, reject) => 
             setTimeout(() => reject(new Error('Session check timeout')), 5000)
@@ -135,51 +192,59 @@ function App() {
             console.log('✅ Found existing session for:', session.user.email);
             
             // Track returning user
-            MetaPixelService.trackLogin('returning_session');
+            console.log('📊 Returning user tracked');
             
             // Get user profile with timeout
             try {
               const profilePromise = AuthService.getCurrentUser() as Promise<{ user: any; profile: any }>;
               const profileTimeoutPromise = new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('Profile fetch timeout')), 3000)
+                setTimeout(() => reject(new Error('Profile fetch timeout')), 5000)
               );
               
-              const { user: authUser, profile } = await Promise.race([profilePromise, profileTimeoutPromise]) as any;
+              const { user: authUser, profile } = await Promise.race([
+                profilePromise,
+                profileTimeoutPromise
+              ]) as { user: any; profile: any };
               
-              if (authUser && profile) {
-                setUser({
+              if (authUser) {
+                const userData = {
                   id: authUser.id,
-                  name: profile.name,
-                  email: profile.email,
-                  subscription_tier: profile.subscription_tier,
-                  search_count: profile.search_count
-                });
+                  name: profile?.name || authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'User',
+                  email: profile?.email || authUser.email || '',
+                  subscription_tier: profile?.subscription_tier || 'free' as const,
+                  search_count: profile?.search_count || 0
+                };
+                
+                setUser(userData);
+                console.log('✅ User set from existing session:', userData.email);
                 
                 // Track user tier
-                MetaPixelService.trackCustomEvent('UserTierIdentified', {
-                  tier: profile.subscription_tier,
-                  search_count: profile.search_count
-                });
+                console.log('📊 User tier tracked:', userData.subscription_tier);
               }
             } catch (profileError) {
-              console.warn('⚠️ Could not fetch user profile:', profileError);
-              // Continue without profile - user can still use the app
+              console.warn('⚠️ Profile fetch failed, using basic user data:', profileError);
+              const basicUserData = {
+                id: session.user.id,
+                name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
+                email: session.user.email || '',
+                subscription_tier: 'free' as const,
+                search_count: 0
+              };
+              setUser(basicUserData);
             }
           } else {
             console.log('ℹ️ No existing session found');
-            MetaPixelService.trackPageView('landing_page_first_visit');
+            console.log('📊 Landing page first visit tracked');
           }
         } catch (sessionError) {
           console.warn('⚠️ Session check failed:', sessionError);
           // Continue without session - user can still use the app
-          MetaPixelService.trackPageView('landing_page_first_visit');
+          console.log('📊 Landing page first visit tracked');
         }
         
       } catch (error) {
         console.error('❌ App initialization error:', error);
-        MetaPixelService.trackCustomEvent('AppInitializationError', {
-          error: error instanceof Error ? error.message : 'Unknown error'
-        });
+        console.log('📊 App initialization error tracked');
       } finally {
         setIsLoading(false);
         console.log('✅ App initialization complete');
@@ -190,7 +255,7 @@ function App() {
     const fallbackTimeout = setTimeout(() => {
       console.warn('⚠️ App initialization taking too long, forcing completion...');
       setIsLoading(false);
-    }, 10000); // 10 second fallback
+    }, 5000); // 5 second fallback
 
     initializeApp().finally(() => {
       clearTimeout(fallbackTimeout);
@@ -215,108 +280,73 @@ function App() {
           }
           
           // Check if user is already set to prevent duplicate processing
-          if (user && user.email === session.user.email) {
+          const currentUser = user;
+          if (currentUser && currentUser.email === session.user.email) {
             console.log('✅ User already set, skipping duplicate processing');
             return;
           }
           
-          // Add timeout to prevent hanging
-          const profileFetchPromise = AuthService.getCurrentUser();
-          const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Profile fetch timeout')), 10000)
-          );
+          // Check if we have stored user data to preserve tier and search count
+          const storedUser = sessionStorage.getItem('currentUser');
+          let subscriptionTier: 'free' | 'standard' | 'pro' = 'free';
+          let searchCount = 0;
           
-          const { user: authUser, profile } = await Promise.race([
-            profileFetchPromise,
-            timeoutPromise
-          ]) as { user: any; profile: any };
-          
-          console.log('🔍 Auth state change: getCurrentUser result:', { authUser: !!authUser, profile: !!profile });
-          
-          if (authUser) {
-            let userData;
-            
-            if (profile) {
-              // Use profile data if available
-              userData = {
-                id: authUser.id,
-                name: profile.name,
-                email: profile.email,
-                subscription_tier: profile.subscription_tier,
-                search_count: profile.search_count
-              };
-              console.log('✅ Using profile data:', userData);
-            } else {
-              // Fallback to basic user data if profile fetch failed
-              userData = {
-                id: authUser.id,
-                name: authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'User',
-                email: authUser.email || '',
-                subscription_tier: 'free' as const,
-                search_count: 0
-              };
-              console.log('⚠️ Profile fetch failed, using basic user data:', userData);
+          if (storedUser) {
+            try {
+              const parsed = JSON.parse(storedUser);
+              subscriptionTier = parsed.subscription_tier || 'free';
+              searchCount = parsed.search_count || 0;
+              console.log('✅ Preserving tier from session:', subscriptionTier);
+            } catch (error) {
+              console.error('Failed to parse stored user:', error);
             }
-            
-            setUser(userData);
-            console.log('✅ User set:', userData.email);
-            
-            // Close auth modal and navigate to dashboard
-            setAuthModalOpen(false);
-            setCurrentView('dashboard');
-            setNavigationHistory(['landing', 'dashboard']);
-            
-            // Reset loading state in modal
-            setResetAuthLoading(true);
-            setTimeout(() => setResetAuthLoading(false), 100);
-            
-            // Track successful login
-            MetaPixelService.trackLogin('email_password');
-            MetaPixelService.trackFunnelStep('successful_login', 3);
           } else {
-            console.error('❌ Auth state change: No user found in getCurrentUser result');
-            // This shouldn't happen if we have a session, but handle it gracefully
-            const basicUserData = {
-              id: session.user.id,
-              name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
-              email: session.user.email || '',
-              subscription_tier: 'free' as const,
-              search_count: 0
-            };
-            setUser(basicUserData);
-            setAuthModalOpen(false);
-            setCurrentView('dashboard');
-            setNavigationHistory(['landing', 'dashboard']);
-            
-            // Reset loading state in modal
-            setResetAuthLoading(true);
-            setTimeout(() => setResetAuthLoading(false), 100);
-            
-            MetaPixelService.trackLogin('email_password');
+            // Check localStorage for subscription tier
+            subscriptionTier = await AuthService.getSubscriptionTier(session.user.id);
+            searchCount = await AuthService.getSearchCount(session.user.id);
           }
-        } catch (error) {
-          console.error('❌ Error fetching user profile:', error);
-          // Even if profile fetch fails, close modal and set basic user data
-          const basicUserData = {
+          
+          // Create user data preserving tier and search count
+          const userData = {
             id: session.user.id,
             name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
             email: session.user.email || '',
-            subscription_tier: 'free' as const,
-            search_count: 0
+            subscription_tier: subscriptionTier,
+            search_count: searchCount
           };
-          setUser(basicUserData);
-          setAuthModalOpen(false);
-          setCurrentView('dashboard');
-          setNavigationHistory(['landing', 'dashboard']);
+          
+          setUser(userData);
+          console.log('✅ User set:', userData.email, 'Tier:', userData.subscription_tier);
+          
+          // Only navigate to dashboard if this is a NEW sign-in (not restoring existing session)
+          // Check if we have a stored view - if so, preserve it
+          const storedView = sessionStorage.getItem('currentView');
+          
+          if (!storedView || storedView === 'landing' || storedView === 'auth-callback') {
+            // New sign-in - navigate to dashboard
+            setAuthModalOpen(false);
+            setCurrentView('dashboard');
+            setNavigationHistory(['landing', 'dashboard']);
+            console.log('📍 New sign-in - navigating to dashboard');
+          } else {
+            // Existing session being restored - keep current view
+            console.log('📍 Existing session - preserving current view:', storedView);
+            setAuthModalOpen(false);
+          }
           
           // Reset loading state in modal
           setResetAuthLoading(true);
           setTimeout(() => setResetAuthLoading(false), 100);
+          
+          // Track successful login
+          console.log('📊 Login tracked');
+        } catch (error) {
+          console.error('❌ Error in auth state change:', error);
         }
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
-        console.log('�� User signed out');
-        MetaPixelService.trackCustomEvent('UserSignedOut');
+        console.log(' User signed out');
+        console.log('📊 User signed out tracked');
       }
     });
 
@@ -324,109 +354,243 @@ function App() {
       console.log('🧹 Cleaning up auth listener...');
       subscription?.unsubscribe();
     };
-  }, [showEmailVerification, user]); // Include user in dependencies to prevent duplicate processing
+  }, [showEmailVerification]); // Only include showEmailVerification in dependencies
 
-  // Handle auth callback completion
-  const handleAuthComplete = (userData: User) => {
-    console.log('🎉 Auth complete, redirecting to dashboard for:', userData.email);
-    setUser(userData);
-    setCurrentView('dashboard');
-    setNavigationHistory(['landing', 'dashboard']);
+  // Sync URL with stored view on mount
+  useEffect(() => {
+    const storedView = sessionStorage.getItem('currentView');
     
-    // Track successful registration/authentication
-    MetaPixelService.trackSignUp('email_password');
-    MetaPixelService.trackFunnelStep('dashboard_reached', 4);
-    MetaPixelService.trackUserJourney('auth_callback', 'dashboard');
-    
-    // Clean up the URL
-    window.history.replaceState({}, document.title, '/');
-  };
+    // If we have a stored view, make sure the URL is synced
+    if (storedView && currentView === storedView) {
+      const path = storedView === 'landing' ? '/' : `/${storedView}`;
+      if (window.location.pathname !== path) {
+        window.history.replaceState({ view: storedView }, '', path);
+        console.log('🔄 Synced URL with stored view:', path);
+      }
+    }
+  }, []); // Only run once on mount
+
+  // Persist results to sessionStorage whenever they change
+  useEffect(() => {
+    if (currentResults && currentSearchQuery) {
+      sessionStorage.setItem('currentResults', JSON.stringify(currentResults));
+      sessionStorage.setItem('currentSearchQuery', currentSearchQuery);
+      console.log('💾 Results saved to session storage');
+    }
+  }, [currentResults, currentSearchQuery]);
+
+  // Persist currentView to sessionStorage whenever it changes
+  useEffect(() => {
+    sessionStorage.setItem('currentView', currentView);
+    console.log('💾 Current view saved to session storage:', currentView);
+  }, [currentView]);
+
+  // Persist user data to sessionStorage whenever it changes
+  useEffect(() => {
+    if (user) {
+      sessionStorage.setItem('currentUser', JSON.stringify(user));
+      console.log('💾 User saved to session storage:', user.email, 'Tier:', user.subscription_tier);
+    } else {
+      sessionStorage.removeItem('currentUser');
+      console.log('🧹 User cleared from session storage');
+    }
+  }, [user]);
+
+  // Handle browser back/forward navigation
+  useEffect(() => {
+    const handlePopState = () => {
+      const path = window.location.pathname;
+      const view = path === '/' ? 'landing' : path.slice(1) as 'dashboard' | 'results' | 'contact' | 'privacy' | 'terms' | 'blog';
+      
+      if (['landing', 'dashboard', 'results', 'contact', 'privacy', 'terms', 'blog'].includes(view)) {
+        setCurrentView(view);
+        setNavigationHistory(prev => [...prev, view]);
+        
+        // If navigating to results, restore from sessionStorage
+        if (view === 'results') {
+          const storedResults = sessionStorage.getItem('currentResults');
+          const storedQuery = sessionStorage.getItem('currentSearchQuery');
+          
+          if (storedResults && storedQuery) {
+            try {
+              setCurrentResults(JSON.parse(storedResults));
+              setCurrentSearchQuery(storedQuery);
+              console.log('✅ Restored results on navigation');
+            } catch (error) {
+              console.error('Failed to restore results on navigation:', error);
+            }
+          }
+        }
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  // Admin Panel keyboard shortcut (Ctrl+Shift+A or Cmd+Shift+A)
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key === 'A') {
+        event.preventDefault();
+        if (user) {
+          console.log('🔧 Admin panel toggled');
+          setAdminPanelOpen(prev => !prev);
+        } else {
+          console.log('⚠️ Admin panel requires login');
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [user]);
 
   // Navigation functions
-  const navigateTo = (view: 'landing' | 'dashboard' | 'results' | 'contact' | 'privacy') => {
+  const navigateTo = (view: 'landing' | 'dashboard' | 'results' | 'contact' | 'privacy' | 'terms' | 'blog') => {
     const previousView = currentView;
     setNavigationHistory(prev => [...prev, view]);
     setCurrentView(view);
     
+    // Update URL without hash
+    const path = view === 'landing' ? '/' : `/${view}`;
+    window.history.pushState({ view }, '', path);
+    
     // Track page navigation
-    MetaPixelService.trackUserJourney(previousView, view);
-    MetaPixelService.trackPageView(view);
+    console.log('📊 Page navigation tracked:', previousView, '->', view);
   };
 
   const handleGoBack = () => {
+    // Clear results from sessionStorage when navigating back
+    if (currentView === 'results') {
+      sessionStorage.removeItem('currentResults');
+      sessionStorage.removeItem('currentSearchQuery');
+      console.log('🧹 Cleared results from session storage');
+    }
+    
     if (navigationHistory.length > 1) {
-      const newHistory = [...navigationHistory];
-      newHistory.pop();
-      const previousPage = newHistory[newHistory.length - 1];
-      setNavigationHistory(newHistory);
+      const previousPage = navigationHistory[navigationHistory.length - 2];
+      setNavigationHistory(prev => prev.slice(0, -1));
       setCurrentView(previousPage as 'landing' | 'dashboard' | 'results' | 'contact' | 'privacy');
       
-      MetaPixelService.trackEngagement('navigation_back', previousPage);
+      console.log('📊 Navigation back tracked');
     } else {
       setCurrentView('landing');
-      MetaPixelService.trackPageView('landing');
+      console.log('📊 Landing page tracked');
     }
   };
 
   const handleGoHome = () => {
+    // Clear sessionStorage when going home
+    sessionStorage.removeItem('currentResults');
+    sessionStorage.removeItem('currentSearchQuery');
+    sessionStorage.removeItem('currentView');
+    console.log('🧹 Cleared session storage');
+    
     setCurrentView('landing');
     setNavigationHistory(['landing']);
-    MetaPixelService.trackEngagement('navigation_home');
-    MetaPixelService.trackPageView('landing');
+    console.log('📊 Home navigation tracked');
   };
 
   const handleGetStarted = () => {
     navigateTo('dashboard');
-    MetaPixelService.trackEngagement('get_started_clicked');
-    MetaPixelService.trackFunnelStep('get_started_clicked', 1);
+    console.log('📊 Get started tracked');
   };
 
   const handleContact = () => {
     navigateTo('contact');
-    MetaPixelService.trackContact('contact_page_visited');
+    console.log('📊 Contact page tracked');
   };
 
   const handlePrivacyPolicy = () => {
     navigateTo('privacy');
-    MetaPixelService.trackEngagement('privacy_policy_viewed');
+    console.log('📊 Privacy policy tracked');
+  };
+
+  const handleTermsAndConditions = () => {
+    navigateTo('terms');
+    console.log('📊 Terms and conditions tracked');
+  };
+
+  const handleBlog = () => {
+    navigateTo('blog');
+    console.log('📊 Blog page tracked');
+  };
+
+  const handlePricing = () => {
+    const scrollToPricing = () => {
+      const pricingSection = document.getElementById('pricing');
+      if (pricingSection) {
+        pricingSection.scrollIntoView({ behavior: 'smooth' });
+        console.log('✅ Scrolled to pricing section');
+        return true;
+      }
+      return false;
+    };
+
+    if (currentView === 'landing') {
+      // If already on landing page, just scroll to pricing section
+      scrollToPricing();
+    } else {
+      // If on different page, navigate first then scroll
+      navigateTo('landing');
+      
+      // Use requestAnimationFrame for better timing
+      const attemptScroll = (attempts = 0) => {
+        if (attempts > 10) {
+          console.warn('⚠️ Failed to scroll to pricing section after multiple attempts');
+          return;
+        }
+        
+        if (scrollToPricing()) {
+          return;
+        }
+        
+        // Try again on next frame
+        requestAnimationFrame(() => {
+          setTimeout(() => attemptScroll(attempts + 1), 50);
+        });
+      };
+      
+      // Start attempting to scroll after a short delay
+      setTimeout(() => attemptScroll(), 100);
+    }
+    console.log('📊 Pricing navigation tracked');
   };
 
   const handleLogin = () => {
     setAuthMode('login');
     setAuthModalOpen(true);
     setAuthError(null);
-    MetaPixelService.trackEngagement('login_modal_opened');
+    console.log('📊 Login modal tracked');
   };
 
   const handleSignUp = () => {
     setAuthMode('signup');
     setAuthModalOpen(true);
     setAuthError(null);
-    MetaPixelService.trackEngagement('signup_modal_opened');
-    MetaPixelService.trackFunnelStep('signup_initiated', 2);
+    console.log('📊 Signup modal tracked');
   };
 
-  const handleShowResults = (results: AnalyzedResults, query: string) => {
+  const handleSearchResults = (results: AnalyzedResults, query: string) => {
     setCurrentResults(results);
     setCurrentSearchQuery(query);
     navigateTo('results');
     
     // Track successful search
-    MetaPixelService.trackSearch(query, 'content_research');
-    MetaPixelService.trackFunnelStep('search_results_displayed', 5);
+    console.log('📊 Search tracked:', query);
     
     // Track results metrics
     const totalResults = (results.painPoints?.length || 0) + 
                         (results.trendingIdeas?.length || 0) + 
                         (results.contentIdeas?.length || 0);
     
-    MetaPixelService.trackCustomEvent('SearchCompleted', {
+    console.log('📊 Search completed tracked:', {
       query,
       total_results: totalResults,
       pain_points: results.painPoints?.length || 0,
       trending_ideas: results.trendingIdeas?.length || 0,
-      content_ideas: results.contentIdeas?.length || 0,
-      user_tier: user?.subscription_tier || 'free'
+      content_ideas: results.contentIdeas?.length || 0
     });
   };
 
@@ -438,114 +602,105 @@ function App() {
       // Check if user is already signed in
       const { user: currentUser } = await AuthService.getCurrentUser();
       if (currentUser && currentUser.email === email) {
-        console.log('✅ User is already signed in, closing modal and navigating to dashboard');
+        console.log('✅ User is already signed in, closing modal');
+        
+        // Preserve tier and search count
+        const tier = await AuthService.getSubscriptionTier(currentUser.id);
+        const searchCount = await AuthService.getSearchCount(currentUser.id);
+        
         setUser({
           id: currentUser.id,
           name: currentUser.user_metadata?.name || currentUser.email?.split('@')[0] || 'User',
           email: currentUser.email || '',
-          subscription_tier: 'free',
-          search_count: 0
+          subscription_tier: tier,
+          search_count: searchCount
         });
         setAuthModalOpen(false);
-        setCurrentView('dashboard');
-        setNavigationHistory(['landing', 'dashboard']);
+        
+        // Only navigate to dashboard if we're on landing page, otherwise preserve current view
+        const storedView = sessionStorage.getItem('currentView');
+        if (!storedView || storedView === 'landing') {
+          setCurrentView('dashboard');
+          setNavigationHistory(['landing', 'dashboard']);
+          console.log('📍 Navigating to dashboard');
+        } else {
+          console.log('📍 Preserving current view:', storedView);
+        }
         
         // Reset loading state in modal
         setResetAuthLoading(true);
         setTimeout(() => setResetAuthLoading(false), 100);
         
-        MetaPixelService.trackLogin('email_password');
+        console.log('📊 Login tracked');
         return;
       }
-      
+
       if (authMode === 'signup') {
-        if (!name) {
-          setAuthError('Name is required for sign up');
-          return;
-        }
-        console.log('📝 Attempting sign up...');
-        const { error } = await AuthService.signUp(email, password, name);
+        console.log('🔑 Attempting sign up...');
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { name: name || email.split('@')[0] }
+          }
+        });
+
         if (error) {
-          let errorMessage = 'Sign up failed';
-          
-          if (error instanceof Error) {
-            errorMessage = error.message;
-          } else if (typeof error === 'object' && error !== null) {
-            errorMessage = (error as any).message || 'Sign up failed';
-          }
-          
-          // Handle specific error cases
-          if (errorMessage.includes('already registered') || errorMessage.includes('already exists')) {
-            errorMessage = 'An account with this email already exists. Please sign in instead.';
-          } else if (errorMessage.includes('Invalid email')) {
-            errorMessage = 'Please enter a valid email address.';
-          } else if (errorMessage.includes('Password')) {
-            errorMessage = 'Password must be at least 6 characters long.';
-          }
-          
+          const errorMessage = error.message.includes('already registered') 
+            ? 'An account with this email already exists. Please sign in instead.'
+            : error.message;
           console.error('❌ Sign up error:', errorMessage);
           setAuthError(errorMessage);
-          MetaPixelService.trackCustomEvent('SignUpError', { error: errorMessage });
+          console.log('📊 Sign up error tracked:', errorMessage);
           return;
         }
         console.log('✅ Sign up successful');
-        MetaPixelService.trackSignUp('email_password');
+        console.log('📊 Sign up tracked');
         
         // Show email verification screen instead of closing modal
-        setAuthError(null);
-        setVerificationEmail(email);
         setShowEmailVerification(true);
+        setVerificationEmail(email);
+        setResetAuthLoading(true);
+        setTimeout(() => setResetAuthLoading(false), 100);
+        return;
       } else {
         console.log('🔑 Attempting sign in...');
-        const { error } = await AuthService.signIn(email, password);
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password
+        });
+
         if (error) {
-          const errorMessage = error instanceof Error ? error.message : 'Sign in failed';
+          const errorMessage = error.message.includes('Invalid login credentials')
+            ? 'Invalid email or password. Please check your credentials and try again.'
+            : error.message;
           console.error('❌ Sign in error:', errorMessage);
           setAuthError(errorMessage);
-          MetaPixelService.trackCustomEvent('LoginError', { error: errorMessage });
+          console.log('📊 Sign in error tracked:', errorMessage);
           // Clear any email verification state on sign in error
           setShowEmailVerification(false);
-          setVerificationEmail('');
+          setResetAuthLoading(true);
+          setTimeout(() => setResetAuthLoading(false), 100);
           return;
         }
-        console.log('✅ Sign in successful - waiting for auth state change...');
-        // Clear any email verification state on successful sign in
-        setShowEmailVerification(false);
-        setVerificationEmail('');
-        // Don't close modal here - let the auth state change handler do it
-        // This ensures proper user state and navigation
+        console.log('✅ Sign in successful');
       }
     } catch (error) {
       console.error('❌ Authentication error:', error);
       setAuthError('An unexpected error occurred');
-      MetaPixelService.trackCustomEvent('AuthenticationError', {
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
+      console.log('📊 Authentication error tracked');
     }
   };
 
   const handleSignOut = async () => {
     try {
-      console.log('🚪 Signing out user...');
-      const { error } = await AuthService.signOut();
-      
-      if (error) {
-        console.error('❌ Sign out error:', error);
-        return;
-      }
-      
-      // Clear all user-related state
+      await supabase.auth.signOut();
       setUser(null);
       setCurrentView('landing');
       setNavigationHistory(['landing']);
-      setAuthModalOpen(false);
-      setAuthError(null);
-      setShowEmailVerification(false);
-      setVerificationEmail('');
       
       // Track sign out
-      MetaPixelService.trackCustomEvent('UserSignedOut');
-      MetaPixelService.trackPageView('landing');
+      console.log('📊 User signed out tracked');
       
       console.log('✅ User signed out successfully');
     } catch (error) {
@@ -553,63 +708,86 @@ function App() {
     }
   };
 
-  const handleSwitchAuthMode = () => {
+  const handleToggleAuthMode = () => {
     setAuthMode(authMode === 'login' ? 'signup' : 'login');
     setAuthError(null);
-    MetaPixelService.trackEngagement(`auth_mode_switched_to_${authMode === 'login' ? 'signup' : 'login'}`);
+    console.log('📊 Auth mode switched tracked');
   };
 
   const handleSearchLimitReached = () => {
     setSearchLimitModalOpen(true);
-    MetaPixelService.trackUpgradePrompt(user?.subscription_tier || 'free', 'standard');
-    MetaPixelService.trackCustomEvent('SearchLimitReached', {
-      current_tier: user?.subscription_tier || 'free',
-      search_count: user?.search_count || 0
-    });
+    console.log('📊 Search limit reached tracked');
   };
 
-  const handleSearchPerformed = async () => {
+  const handleSearchCountUpdate = async (increment: number = 1) => {
     if (user) {
+      // For logged-in users, use the AuthService with daily reset logic
       try {
-        await AuthService.updateSearchCount(user.id);
-        setUser(prev => prev ? { ...prev, search_count: prev.search_count + 1 } : null);
-        
-        MetaPixelService.trackDashboardUsage('search_performed');
-        MetaPixelService.trackCustomEvent('SearchCountUpdated', {
-          new_count: (user.search_count || 0) + 1,
-          user_tier: user.subscription_tier
-        });
+        const { data, error } = await AuthService.updateSearchCount(user.id, increment);
+        if (!error && data) {
+          setUser(prev => prev ? { ...prev, search_count: data.search_count } : null);
+          
+          console.log('📊 Dashboard usage tracked');
+          console.log('📊 Search count updated tracked');
+        }
       } catch (error) {
-        console.error('Error updating search count:', error);
+        console.error('❌ Error updating search count:', error);
       }
     } else {
-      // Handle anonymous user search count
-      const newCount = anonymousSearchCount + 1;
-      setAnonymousSearchCount(newCount);
+      // For anonymous users, update localStorage (lifetime limit, no daily reset)
+      const currentCount = parseInt(localStorage.getItem('anonymousSearchCount') || '0', 10);
+      const newCount = currentCount + increment;
       localStorage.setItem('anonymousSearchCount', newCount.toString());
       
-      MetaPixelService.trackDashboardUsage('search_performed');
-      MetaPixelService.trackCustomEvent('AnonymousSearchCountUpdated', {
-        new_count: newCount,
-        user_tier: 'free'
-      });
+      console.log('📊 Dashboard usage tracked');
+      console.log('📊 Anonymous search count updated tracked (lifetime: ' + newCount + '/5)');
     }
   };
 
-  // Show loading spinner while checking auth
+  // Get current search count for display (handles both logged-in and anonymous users)
+  const getSearchCount = () => {
+    if (user) {
+      return user.search_count;
+    } else {
+      // Anonymous users have lifetime limit
+      return parseInt(localStorage.getItem('anonymousSearchCount') || '0', 10);
+    }
+  };
+
+  const handleAuthComplete = () => {
+    // Only navigate to dashboard if we're on landing/auth pages, otherwise preserve view
+    const storedView = sessionStorage.getItem('currentView');
+    
+    if (!storedView || storedView === 'landing' || storedView === 'auth-callback') {
+      setCurrentView('dashboard');
+      setNavigationHistory(['landing', 'dashboard']);
+      console.log('📍 Auth complete - navigating to dashboard');
+    } else {
+      console.log('📍 Auth complete - preserving current view:', storedView);
+    }
+    
+    setShowEmailVerification(false);
+    setVerificationEmail('');
+    console.log('📊 Auth completed tracked');
+  };
+
+  const handleTierUpdated = (tier: 'free' | 'standard' | 'pro') => {
+    if (user) {
+      setUser(prev => prev ? { ...prev, subscription_tier: tier } : null);
+      console.log('✅ User tier updated to:', tier);
+    }
+  };
+
   if (isLoading) {
-    console.log('🔄 App is loading...');
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading...</p>
         </div>
       </div>
     );
   }
-
-  console.log('�� Rendering app with view:', currentView, 'User:', user?.email || 'not logged in');
 
   return (
     <>
@@ -622,46 +800,100 @@ function App() {
           onSignUp={handleSignUp}
           onContact={handleContact}
           onPrivacyPolicy={handlePrivacyPolicy}
+          onTermsAndConditions={handleTermsAndConditions}
+          onBlog={handleBlog}
+          user={user}
+          onSignOut={handleSignOut}
         />
       ) : currentView === 'dashboard' ? (
         <ResearchDashboard
-          onBack={handleGoBack}
           onHome={handleGoHome}
           onContact={handleContact}
+          onBlog={handleBlog}
           onLogin={handleLogin}
           onSignUp={handleSignUp}
-          user={user}
-          searchCount={user?.search_count || anonymousSearchCount}
+          onShowResults={(results, query) => handleSearchResults(results, query)}
           onSearchLimitReached={handleSearchLimitReached}
-          onPrivacyPolicy={handlePrivacyPolicy}
-          onSearchPerformed={handleSearchPerformed}
+          onSearchPerformed={handleSearchCountUpdate}
           onSignOut={handleSignOut}
-          onShowResults={handleShowResults}
-        />
-      ) : currentView === 'results' && currentResults ? (
-        <ResultsPage
-          results={currentResults}
-          searchQuery={currentSearchQuery}
-          onBack={() => setCurrentView('dashboard')}
-          onHome={handleGoHome}
-          onContact={handleContact}
-          onLogin={handleLogin}
-          onSignUp={handleSignUp}
           onPrivacyPolicy={handlePrivacyPolicy}
+          onTermsAndConditions={handleTermsAndConditions}
+          onPricing={handlePricing}
           user={user}
-          onSignOut={handleSignOut}
+          searchCount={getSearchCount()}
         />
+      ) : currentView === 'results' ? (
+        currentResults ? (
+          <ResultsPage
+            searchQuery={currentSearchQuery}
+            results={currentResults}
+            onBack={handleGoBack}
+            onHome={handleGoHome}
+            onContact={handleContact}
+            onBlog={handleBlog}
+            onLogin={handleLogin}
+            onSignUp={handleSignUp}
+            onPrivacyPolicy={handlePrivacyPolicy}
+            onTermsAndConditions={handleTermsAndConditions}
+            user={user}
+            onSignOut={handleSignOut}
+          />
+        ) : (
+          <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading results...</p>
+            </div>
+          </div>
+        )
       ) : currentView === 'contact' ? (
         <ContactPage
-          onBack={handleGoBack}
           onHome={handleGoHome}
           onLogin={handleLogin}
           onSignUp={handleSignUp}
+          onContact={handleContact}
           onPrivacyPolicy={handlePrivacyPolicy}
+          onTermsAndConditions={handleTermsAndConditions}
+          onBlog={handleBlog}
+          user={user}
+          onSignOut={handleSignOut}
+          onPricing={handlePricing}
         />
       ) : currentView === 'privacy' ? (
         <PrivacyPolicy
           onBack={handleGoBack}
+          onHome={handleGoHome}
+          onContact={handleContact}
+          onBlog={handleBlog}
+          onTermsAndConditions={handleTermsAndConditions}
+          user={user}
+          onSignOut={handleSignOut}
+          onLogin={handleLogin}
+          onSignUp={handleSignUp}
+        />
+      ) : currentView === 'terms' ? (
+        <TermsAndConditions
+          onHome={handleGoHome}
+          onContact={handleContact}
+          onBlog={handleBlog}
+          onPrivacyPolicy={handlePrivacyPolicy}
+          onTermsAndConditions={handleTermsAndConditions}
+          user={user}
+          onSignOut={handleSignOut}
+          onLogin={handleLogin}
+          onSignUp={handleSignUp}
+        />
+      ) : currentView === 'blog' ? (
+        <BlogPage
+          onHome={handleGoHome}
+          onContact={handleContact}
+          onBlog={handleBlog}
+          onPrivacyPolicy={handlePrivacyPolicy}
+          onTermsAndConditions={handleTermsAndConditions}
+          onLogin={handleLogin}
+          onSignUp={handleSignUp}
+          user={user}
+          onSignOut={handleSignOut}
         />
       ) : null}
 
@@ -672,27 +904,36 @@ function App() {
           setAuthError(null);
           setShowEmailVerification(false);
           setVerificationEmail('');
-          MetaPixelService.trackEngagement('auth_modal_closed');
+          console.log('📊 Auth modal closed tracked');
         }}
         mode={authMode}
-        onSwitchMode={handleSwitchAuthMode}
         onAuth={handleAuth}
+        onSwitchMode={handleToggleAuthMode}
         error={authError}
+        resetLoading={resetAuthLoading}
         showEmailVerification={showEmailVerification}
         verificationEmail={verificationEmail}
-        resetLoading={resetAuthLoading}
       />
 
       <SearchLimitModal
         isOpen={searchLimitModalOpen}
         onClose={() => {
           setSearchLimitModalOpen(false);
-          MetaPixelService.trackEngagement('search_limit_modal_closed');
+          console.log('📊 Search limit modal closed tracked');
         }}
         onSignUp={handleSignUp}
-        searchCount={user?.search_count || anonymousSearchCount}
         userTier={user?.subscription_tier || 'free'}
+        searchCount={getSearchCount()}
+        isLoggedIn={!!user}
       />
+
+      {adminPanelOpen && user && (
+        <AdminPanel
+          user={user}
+          onClose={() => setAdminPanelOpen(false)}
+          onTierUpdated={handleTierUpdated}
+        />
+      )}
     </>
   );
 }

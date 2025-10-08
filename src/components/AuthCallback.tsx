@@ -25,12 +25,58 @@ const AuthCallback: React.FC<AuthCallbackProps> = ({ onAuthComplete }) => {
         console.log('Current URL:', window.location.href);
         console.log('Hash:', window.location.hash);
         
+        // First, check if user is already authenticated
+        console.log('🔍 Checking for existing session...');
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionData?.session?.user && !sessionError) {
+          console.log('✅ User already authenticated:', sessionData.session.user.email);
+          
+          // User is already signed in, proceed with profile fetch
+          try {
+            const { user: authUser, profile } = await AuthService.getCurrentUser();
+            
+            if (authUser && profile) {
+              console.log('✅ Profile found, completing authentication');
+              onAuthComplete({
+                id: authUser.id,
+                name: profile.name,
+                email: profile.email,
+                subscription_tier: (profile.subscription_tier || 'free') as 'free' | 'standard' | 'pro',
+                search_count: profile.search_count || 0
+              });
+              return;
+            } else {
+              // Create basic user data from session
+              console.log('⚠️ No profile found, using session data');
+              onAuthComplete({
+                id: sessionData.session.user.id,
+                name: sessionData.session.user.user_metadata?.name || sessionData.session.user.email?.split('@')[0] || 'User',
+                email: sessionData.session.user.email || '',
+                subscription_tier: 'free' as const,
+                search_count: 0
+              });
+              return;
+            }
+          } catch (profileError) {
+            console.warn('⚠️ Profile fetch failed, using session data:', profileError);
+            onAuthComplete({
+              id: sessionData.session.user.id,
+              name: sessionData.session.user.user_metadata?.name || sessionData.session.user.email?.split('@')[0] || 'User',
+              email: sessionData.session.user.email || '',
+              subscription_tier: 'free' as const,
+              search_count: 0
+            });
+            return;
+          }
+        }
+        
         // Check if we have tokens in the URL hash
         const hash = window.location.hash;
         console.log('🔍 Checking URL hash:', hash);
         
         if (!hash || !hash.includes('access_token')) {
-          console.error('No access token found in URL hash');
+          console.error('No access token found in URL hash and no existing session');
           setError('Invalid authentication link. Please try signing in again.');
           return;
         }
@@ -79,36 +125,27 @@ const AuthCallback: React.FC<AuthCallbackProps> = ({ onAuthComplete }) => {
         await new Promise(resolve => setTimeout(resolve, 2000));
         
         // Try to get the session after tokens are processed
-        let sessionData = null;
-        let sessionError = null;
+        console.log('🔍 Attempting to get session from Supabase...');
+        const { data: fallbackSessionData, error: fallbackSessionError } = await supabase.auth.getSession();
         
-        try {
-          console.log('🔍 Attempting to get session from Supabase...');
-          const { data, error } = await supabase.auth.getSession();
-          sessionData = data;
-          sessionError = error;
-          console.log('AuthCallback: Session data:', data);
-          console.log('AuthCallback: Session error:', error);
-        } catch (err) {
-          console.warn('Session retrieval failed:', err);
-          sessionError = err;
-        }
+        console.log('AuthCallback: Session data:', fallbackSessionData);
+        console.log('AuthCallback: Session error:', fallbackSessionError);
         
         // If session retrieval also failed, show error
-        if (sessionError || !sessionData?.session?.user) {
+        if (fallbackSessionError || !fallbackSessionData?.session?.user) {
           console.error('❌ Both token extraction and session retrieval failed');
           setError('Authentication failed. Please try signing in again.');
           return;
         }
 
-        if (sessionData.session?.user) {
-          console.log('✅ User session found:', sessionData.session.user.email);
+        if (fallbackSessionData.session?.user) {
+          console.log('✅ User session found:', fallbackSessionData.session.user.email);
           
           // Create basic user data for completion
           const userData = {
-            id: sessionData.session.user.id,
-            name: sessionData.session.user.user_metadata?.name || sessionData.session.user.email?.split('@')[0] || 'User',
-            email: sessionData.session.user.email || '',
+            id: fallbackSessionData.session.user.id,
+            name: fallbackSessionData.session.user.user_metadata?.name || fallbackSessionData.session.user.email?.split('@')[0] || 'User',
+            email: fallbackSessionData.session.user.email || '',
             subscription_tier: 'free' as const,
             search_count: 0
           };
@@ -124,8 +161,8 @@ const AuthCallback: React.FC<AuthCallbackProps> = ({ onAuthComplete }) => {
                 id: authUser.id,
                 name: profile.name,
                 email: profile.email,
-                subscription_tier: profile.subscription_tier,
-                search_count: profile.search_count
+                subscription_tier: (profile.subscription_tier || 'free') as 'free' | 'standard' | 'pro',
+                search_count: profile.search_count || 0
               });
             } else {
               console.log('⚠️ No profile found, using basic user data');

@@ -11,7 +11,7 @@ import {
   Sparkles,
   Crown,
   Mail,
-  Linkedin,
+  Facebook,
   Instagram
 } from 'lucide-react';
 import { AnalyzedResults, SocialPost } from '../services/apiConfig';
@@ -23,9 +23,11 @@ interface ResultsPageProps {
   onBack: () => void;
   onHome: () => void;
   onContact: () => void;
+  onBlog: () => void;
   onLogin: () => void;
   onSignUp: () => void;
   onPrivacyPolicy: () => void;
+  onTermsAndConditions: () => void;
   user: { 
     id: string;
     name: string; 
@@ -42,15 +44,18 @@ const ResultsPage: React.FC<ResultsPageProps> = ({
   onBack,
   onHome,
   onContact,
+  onBlog,
   onLogin,
   onSignUp,
   onPrivacyPolicy,
+  onTermsAndConditions,
   user,
   onSignOut
 }) => {
   const [scriptModalOpen, setScriptModalOpen] = useState(false);
   const [scriptModalCategory, setScriptModalCategory] = useState<'painPoints' | 'trendingIdeas' | 'contentIdeas'>('painPoints');
   const [scriptModalPosts, setScriptModalPosts] = useState<SocialPost[]>([]);
+  const [expandedPosts, setExpandedPosts] = useState<Set<string>>(new Set());
 
   const userTier = user?.subscription_tier || 'free';
   const tierLimits = {
@@ -65,6 +70,24 @@ const ResultsPage: React.FC<ResultsPageProps> = ({
     setScriptModalOpen(true);
   };
 
+  // Content truncation utilities
+  const MAX_CONTENT_LENGTH = 200; // Characters to show before truncation
+  const truncateContent = (content: string, maxLength: number = MAX_CONTENT_LENGTH) => {
+    if (content.length <= maxLength) return content;
+    return content.substring(0, maxLength).trim() + '...';
+  };
+
+  const togglePostExpansion = (postId: string) => {
+    const newExpandedPosts = new Set(expandedPosts);
+    if (newExpandedPosts.has(postId)) {
+      newExpandedPosts.delete(postId);
+    } else {
+      newExpandedPosts.add(postId);
+    }
+    setExpandedPosts(newExpandedPosts);
+  };
+
+
   const renderResultCard = (
     title: string, 
     icon: React.ReactNode, 
@@ -72,7 +95,7 @@ const ResultsPage: React.FC<ResultsPageProps> = ({
     bgColor: string, 
     category: 'painPoints' | 'trendingIdeas' | 'contentIdeas'
   ) => (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 h-full flex flex-col">
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col max-h-[700px]">
       {/* Header */}
       <div className={`${bgColor} p-6 rounded-t-xl`}>
         <div className="flex items-center gap-3 text-white">
@@ -99,7 +122,7 @@ const ResultsPage: React.FC<ResultsPageProps> = ({
             </div>
           ) : (
             results.map((result) => (
-              <div key={result.id} className="border border-gray-100 rounded-lg p-4 hover:shadow-md transition-shadow">
+              <div key={result.id} className="border border-gray-100 rounded-lg p-6 hover:shadow-md transition-shadow max-h-[400px] overflow-y-auto">
                 <div className="flex items-start gap-3">
                   <div className="flex-shrink-0 mt-1">
                     {result.platform === 'reddit' && (
@@ -111,9 +134,33 @@ const ResultsPage: React.FC<ResultsPageProps> = ({
                     {result.platform === 'youtube' && <Youtube className="w-6 h-6 text-red-500" />}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-gray-900 text-sm leading-relaxed mb-3">
-                      {result.content}
-                    </p>
+                    <div className="mb-4">
+                      <p className="text-gray-900 text-base leading-relaxed">
+                        {expandedPosts.has(result.id) ? result.content : truncateContent(result.content)}
+                      </p>
+                      {result.content.length > MAX_CONTENT_LENGTH && (
+                        <button
+                          onClick={() => togglePostExpansion(result.id)}
+                          className="text-blue-600 hover:text-blue-800 text-sm font-medium mt-2 hover:underline inline-flex items-center gap-1"
+                        >
+                          {expandedPosts.has(result.id) ? (
+                            <>
+                              <span>Show Less</span>
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                              </svg>
+                            </>
+                          ) : (
+                            <>
+                              <span>Read More</span>
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                              </svg>
+                            </>
+                          )}
+                        </button>
+                      )}
+                    </div>
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-4 text-xs text-gray-500">
                         <span className="font-medium">{result.source}</span>
@@ -130,7 +177,7 @@ const ResultsPage: React.FC<ResultsPageProps> = ({
                             className="flex items-center gap-1 text-blue-600 hover:text-blue-800 hover:underline"
                           >
                             <ExternalLink className="w-3 h-3" />
-                            View
+                            View Original
                           </a>
                         )}
                       </div>
@@ -160,10 +207,10 @@ const ResultsPage: React.FC<ResultsPageProps> = ({
       <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-0">
               <button
                 onClick={onBack}
-                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors mr-4"
               >
                 <ArrowLeft className="w-5 h-5" />
               </button>
@@ -175,21 +222,37 @@ const ResultsPage: React.FC<ResultsPageProps> = ({
                 <img 
                   src="/logo.png" 
                   alt="InsightSnap Logo" 
-                  className="w-12 h-12"
+                  className="w-16 h-16"
                 />
               </button>
-              
-              <div>
-                <button 
-                  onClick={onHome}
-                  className="text-lg font-bold hover:text-indigo-600 transition-colors"
-                >
-                  InsightSnap
-                </button>
-                <div className="text-sm text-gray-500">
-                  Results for "{searchQuery}"
-                </div>
-              </div>
+              <button 
+                onClick={onHome}
+                className="text-xl font-bold hover:text-indigo-600 transition-colors"
+              >
+                InsightSnap
+              </button>
+            </div>
+            
+            {/* Center Navigation */}
+            <div className="hidden md:flex items-center space-x-6">
+              <button 
+                onClick={onHome}
+                className="text-gray-600 hover:text-gray-900 font-medium transition-colors px-4 py-2"
+              >
+                Home
+              </button>
+              <button 
+                onClick={onBlog}
+                className="text-gray-600 hover:text-gray-900 font-medium transition-colors px-4 py-2"
+              >
+                Blog
+              </button>
+              <button 
+                onClick={onContact}
+                className="text-gray-600 hover:text-gray-900 font-medium transition-colors px-4 py-2"
+              >
+                Contact
+              </button>
             </div>
             
             {/* Right side */}
@@ -260,8 +323,8 @@ const ResultsPage: React.FC<ResultsPageProps> = ({
           </p>
         </div>
 
-        {/* Results Grid - Side by Side */}
-        <div className="grid lg:grid-cols-3 gap-8 mb-8">
+        {/* Results Grid - Column Layout */}
+        <div className="space-y-8 mb-8">
           {/* Pain Points */}
           {renderResultCard(
             'Pain Points',
@@ -291,32 +354,32 @@ const ResultsPage: React.FC<ResultsPageProps> = ({
         </div>
 
         {/* Summary Stats */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Summary</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 mb-8">
+          <h3 className="text-xl font-semibold text-gray-900 mb-6">Summary</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             <div className="text-center">
-              <div className="text-2xl font-bold text-red-600">
+              <div className="text-3xl font-bold text-red-600">
                 {results.painPoints.length}
               </div>
-              <div className="text-sm text-gray-600">Pain Points</div>
+              <div className="text-base text-gray-600">Pain Points</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">
+              <div className="text-3xl font-bold text-green-600">
                 {results.trendingIdeas.length}
               </div>
-              <div className="text-sm text-gray-600">Trending Ideas</div>
+              <div className="text-base text-gray-600">Trending Ideas</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-purple-600">
+              <div className="text-3xl font-bold text-purple-600">
                 {results.contentIdeas.length}
               </div>
-              <div className="text-sm text-gray-600">Content Ideas</div>
+              <div className="text-base text-gray-600">Content Ideas</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-indigo-600">
+              <div className="text-3xl font-bold text-indigo-600">
                 {results.painPoints.length + results.trendingIdeas.length + results.contentIdeas.length}
               </div>
-              <div className="text-sm text-gray-600">Total Results</div>
+              <div className="text-base text-gray-600">Total Results</div>
             </div>
           </div>
         </div>
@@ -355,12 +418,22 @@ const ResultsPage: React.FC<ResultsPageProps> = ({
           <div className="grid md:grid-cols-4 gap-8">
             <div>
               <div className="flex items-center space-x-0 mb-4">
-                <img 
-                  src="/logo.png" 
-                  alt="InsightSnap Logo" 
-                  className="w-16 h-16"
-                />
-                <h3 className="text-xl font-bold">InsightSnap</h3>
+                <button 
+                  onClick={onHome}
+                  className="flex items-center hover:opacity-80 transition-opacity"
+                >
+                  <img 
+                    src="/logo.png" 
+                    alt="InsightSnap Logo" 
+                    className="w-16 h-16"
+                  />
+                </button>
+                <button 
+                  onClick={onHome}
+                  className="text-xl font-bold hover:text-indigo-400 transition-colors"
+                >
+                  InsightSnap
+                </button>
               </div>
               <p className="text-gray-400">
                 Discover what your audience really wants with AI-powered social media insights.
@@ -380,7 +453,14 @@ const ResultsPage: React.FC<ResultsPageProps> = ({
             <div>
               <h4 className="font-semibold mb-4">Support</h4>
               <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-white transition-colors">Terms & Conditions</a></li>
+                <li>
+                  <button 
+                    onClick={onBlog}
+                    className="hover:text-white transition-colors text-left w-full"
+                  >
+                    Blog
+                  </button>
+                </li>
                 <li>
                   <button 
                     onClick={onContact}
@@ -397,22 +477,35 @@ const ResultsPage: React.FC<ResultsPageProps> = ({
                     Privacy Policy
                   </button>
                 </li>
+                <li>
+                  <button 
+                    onClick={onTermsAndConditions}
+                    className="hover:text-white transition-colors text-left w-full"
+                  >
+                    Terms & Conditions
+                  </button>
+                </li>
               </ul>
             </div>
             <div>
               <h4 className="font-semibold mb-4">Follow Us</h4>
               <div className="flex space-x-4">
-                <a href="#" className="text-gray-400 hover:text-white transition-colors">
+                <a href="https://x.com/InsightSnapAI" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors" title="X (Twitter)">
                   <Twitter className="w-5 h-5" />
                 </a>
-                <a href="#" className="text-gray-400 hover:text-white transition-colors">
-                  <Youtube className="w-5 h-5" />
+                <a href="https://www.facebook.com/InsightsnapAI/" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors" title="Facebook">
+                  <Facebook className="w-5 h-5" />
                 </a>
-                <a href="#" className="text-gray-400 hover:text-white transition-colors">
+                <a href="https://www.instagram.com/insightsnap.ai/" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors" title="Instagram">
                   <Instagram className="w-5 h-5" />
                 </a>
-                <a href="#" className="text-gray-400 hover:text-white transition-colors">
-                  <Linkedin className="w-5 h-5" />
+                <a href="https://www.youtube.com/@InsightSnap_AI" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors" title="YouTube">
+                  <Youtube className="w-5 h-5" />
+                </a>
+                <a href="https://www.reddit.com/user/InsightSnap/" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors" title="Reddit">
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z"/>
+                  </svg>
                 </a>
               </div>
             </div>

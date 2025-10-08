@@ -1,5 +1,4 @@
 import { supabase } from '../lib/supabase'
-import { User } from '@supabase/supabase-js'
 
 export class AuthService {
   // Sign in with Google
@@ -145,14 +144,15 @@ export class AuthService {
       
       // Create profile data directly from auth user data
       // Since we don't have a custom users table, we'll use the auth user data
-      const storageKey = `search_count_${user.id}`;
-      const searchCount = parseInt(localStorage.getItem(storageKey) || '0', 10);
+      // Use the getSearchCount method which automatically checks for daily resets
+      const searchCount = await this.getSearchCount(user.id);
+      const subscriptionTier = await this.getSubscriptionTier(user.id);
       
       const profile = {
         id: user.id,
         email: user.email || '',
         name: user.user_metadata?.name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
-        subscription_tier: 'free',
+        subscription_tier: subscriptionTier,
         search_count: searchCount,
         created_at: user.created_at,
         last_sign_in_at: user.last_sign_in_at
@@ -167,16 +167,33 @@ export class AuthService {
     }
   }
 
-  // Update user search count (using localStorage for now since we don't have custom users table)
+  // Update user search count with daily reset logic
   static async updateSearchCount(userId: string, increment: number = 1) {
     try {
-      // For now, use localStorage to track search count
-      // In the future, you can create a custom users table if needed
       const storageKey = `search_count_${userId}`;
-      const currentCount = parseInt(localStorage.getItem(storageKey) || '0', 10);
-      const newCount = currentCount + increment;
+      const lastResetKey = `last_reset_${userId}`;
       
+      // Check if we need to reset the count (24 hours have passed)
+      const lastResetDate = localStorage.getItem(lastResetKey);
+      const now = new Date();
+      const shouldReset = this.shouldResetSearchCount(lastResetDate);
+      
+      let currentCount = parseInt(localStorage.getItem(storageKey) || '0', 10);
+      
+      // Reset count if 24 hours have passed
+      if (shouldReset) {
+        console.log(`🔄 Resetting search count for user ${userId} - 24 hours have passed`);
+        currentCount = 0;
+        localStorage.setItem(lastResetKey, now.toISOString());
+      }
+      
+      const newCount = currentCount + increment;
       localStorage.setItem(storageKey, newCount.toString());
+      
+      // Set last reset date if it doesn't exist
+      if (!lastResetDate) {
+        localStorage.setItem(lastResetKey, now.toISOString());
+      }
       
       console.log(`📊 Updated search count for user ${userId}: ${currentCount} -> ${newCount}`);
       
@@ -184,6 +201,46 @@ export class AuthService {
     } catch (error) {
       console.error('Update search count error:', error)
       return { data: null, error }
+    }
+  }
+
+  // Get current search count with automatic reset check
+  static async getSearchCount(userId: string): Promise<number> {
+    try {
+      const storageKey = `search_count_${userId}`;
+      const lastResetKey = `last_reset_${userId}`;
+      
+      const lastResetDate = localStorage.getItem(lastResetKey);
+      const shouldReset = this.shouldResetSearchCount(lastResetDate);
+      
+      if (shouldReset) {
+        console.log(`🔄 Resetting search count for user ${userId} - 24 hours have passed`);
+        localStorage.setItem(storageKey, '0');
+        localStorage.setItem(lastResetKey, new Date().toISOString());
+        return 0;
+      }
+      
+      return parseInt(localStorage.getItem(storageKey) || '0', 10);
+    } catch (error) {
+      console.error('Get search count error:', error);
+      return 0;
+    }
+  }
+
+  // Helper function to check if 24 hours have passed since last reset
+  private static shouldResetSearchCount(lastResetDate: string | null): boolean {
+    if (!lastResetDate) return true;
+    
+    try {
+      const lastReset = new Date(lastResetDate);
+      const now = new Date();
+      const hoursSinceReset = (now.getTime() - lastReset.getTime()) / (1000 * 60 * 60);
+      
+      // Reset if 24 hours or more have passed
+      return hoursSinceReset >= 24;
+    } catch (error) {
+      console.error('Error checking reset time:', error);
+      return true; // Reset on error to be safe
     }
   }
 
@@ -260,6 +317,65 @@ export class AuthService {
     } catch (error) {
       console.error('Check search limit error:', error)
       return { hasReachedLimit: false, currentCount: 0, limit: 0, error }
+    }
+  }
+
+  // Update user subscription tier (Admin function)
+  static async updateSubscriptionTier(userId: string, tier: 'free' | 'standard' | 'pro') {
+    try {
+      console.log(`🔧 Updating subscription tier for user ${userId} to ${tier}`);
+      
+      // Update user metadata in Supabase Auth
+      const { data, error } = await supabase.auth.admin.updateUserById(userId, {
+        user_metadata: { subscription_tier: tier }
+      });
+
+      if (error) {
+        console.error('❌ Error updating subscription tier:', error);
+        // If admin API fails, try updating via localStorage (fallback)
+        localStorage.setItem(`subscription_tier_${userId}`, tier);
+        console.log('✅ Subscription tier updated in localStorage (fallback)');
+        return { success: true, data: { tier }, error: null };
+      }
+
+      console.log('✅ Subscription tier updated successfully');
+      
+      // Also update in localStorage for immediate effect
+      localStorage.setItem(`subscription_tier_${userId}`, tier);
+      
+      return { success: true, data, error: null };
+    } catch (error) {
+      console.error('❌ Exception updating subscription tier:', error);
+      // Fallback to localStorage
+      localStorage.setItem(`subscription_tier_${userId}`, tier);
+      return { success: true, data: { tier }, error: null };
+    }
+  }
+
+  // Get user subscription tier
+  static async getSubscriptionTier(userId: string): Promise<'free' | 'standard' | 'pro'> {
+    try {
+      // Check localStorage first for quick access
+      const localTier = localStorage.getItem(`subscription_tier_${userId}`);
+      if (localTier && ['free', 'standard', 'pro'].includes(localTier)) {
+        return localTier as 'free' | 'standard' | 'pro';
+      }
+
+      // Check Supabase user metadata
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user && session.user.id === userId) {
+        const tier = session.user.user_metadata?.subscription_tier;
+        if (tier && ['free', 'standard', 'pro'].includes(tier)) {
+          // Cache in localStorage
+          localStorage.setItem(`subscription_tier_${userId}`, tier);
+          return tier as 'free' | 'standard' | 'pro';
+        }
+      }
+
+      return 'free'; // Default
+    } catch (error) {
+      console.error('Error getting subscription tier:', error);
+      return 'free';
     }
   }
 }

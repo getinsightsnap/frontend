@@ -1,11 +1,27 @@
 import React from 'react';
-import { Search, ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Twitter, Youtube, Instagram, Facebook, Mail } from 'lucide-react';
+
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  subscription_tier: 'free' | 'standard' | 'pro';
+  search_count: number;
+}
 
 interface PrivacyPolicyProps {
   onBack: () => void;
+  onHome: () => void;
+  onContact: () => void;
+  onBlog: () => void;
+  onTermsAndConditions: () => void;
+  user: User | null;
+  onSignOut: () => void;
+  onLogin: () => void;
+  onSignUp: () => void;
 }
 
-const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack }) => {
+const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack, onHome, onContact, onBlog, onTermsAndConditions, user, onSignOut, onLogin, onSignUp }) => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -15,6 +31,14 @@ const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack }) => {
             <div className="flex items-center space-x-0">
               <button 
                 onClick={onBack}
+                className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 font-medium transition-colors px-3 py-2 rounded-lg hover:bg-gray-100 mr-4"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span>Go Back</span>
+              </button>
+              
+              <button 
+                onClick={onHome}
                 className="flex items-center hover:opacity-80 transition-opacity"
               >
                 <img 
@@ -23,16 +47,77 @@ const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack }) => {
                   className="w-16 h-16"
                 />
               </button>
-              <h3 className="text-xl font-bold">InsightSnap</h3>
-            </div>
-            <div className="flex items-center space-x-4">
               <button 
-                onClick={onBack}
-                className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 font-medium transition-colors px-3 py-2 rounded-lg hover:bg-gray-100"
+                onClick={onHome}
+                className="text-xl font-bold hover:text-indigo-600 transition-colors"
               >
-                <ArrowLeft className="w-4 h-4" />
-                <span>Go Back</span>
+                InsightSnap
               </button>
+            </div>
+            
+            {/* Center Navigation */}
+            <div className="hidden md:flex items-center space-x-6">
+              <button 
+                onClick={onHome}
+                className="text-gray-600 hover:text-gray-900 font-medium transition-colors px-4 py-2"
+              >
+                Home
+              </button>
+              <button 
+                onClick={onBlog}
+                className="text-gray-600 hover:text-gray-900 font-medium transition-colors px-4 py-2"
+              >
+                Blog
+              </button>
+            </div>
+            
+            <div className="flex items-center space-x-4">
+              {user ? (
+                <div className="flex items-center space-x-4">
+                  <div className="text-right">
+                    <div className="text-sm font-medium text-gray-700">
+                      {user.name}
+                      <span className={`ml-2 px-2 py-1 rounded-full text-xs font-medium ${
+                        user.subscription_tier === 'pro' ? 'bg-purple-100 text-purple-800' :
+                        user.subscription_tier === 'standard' ? 'bg-blue-100 text-blue-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {user.subscription_tier.charAt(0).toUpperCase() + user.subscription_tier.slice(1)}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-8 h-8 bg-indigo-600 rounded-full flex items-center justify-center">
+                      <span className="text-white text-sm font-medium">
+                        {user.name.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                    {onSignOut && (
+                      <button
+                        onClick={onSignOut}
+                        className="text-gray-600 hover:text-gray-900 font-medium transition-colors text-sm"
+                      >
+                        Sign Out
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center space-x-4">
+                  <button
+                    onClick={onLogin}
+                    className="text-gray-600 hover:text-gray-900 font-medium transition-colors"
+                  >
+                    Log In
+                  </button>
+                  <button
+                    onClick={onSignUp}
+                    className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+                  >
+                    Sign Up
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -179,6 +264,110 @@ const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack }) => {
           </div>
         </div>
       </main>
+
+      {/* Footer */}
+      <footer className="bg-gray-900 text-white py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid md:grid-cols-4 gap-8">
+            <div>
+              <div className="flex items-center space-x-0 mb-4">
+                <button 
+                  onClick={onHome}
+                  className="flex items-center hover:opacity-80 transition-opacity"
+                >
+                  <img 
+                    src="/logo.png" 
+                    alt="InsightSnap Logo" 
+                    className="w-16 h-16"
+                  />
+                </button>
+                <button 
+                  onClick={onHome}
+                  className="text-xl font-bold hover:text-indigo-400 transition-colors"
+                >
+                  InsightSnap
+                </button>
+              </div>
+              <p className="text-gray-400">
+                Discover what your audience really wants with AI-powered social media insights.
+              </p>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-4">Contact</h4>
+              <div className="space-y-2 text-gray-400">
+                <div className="flex items-center space-x-2">
+                  <Mail className="w-4 h-4" />
+                  <a href="mailto:contact@insightsnap.co" className="hover:text-white transition-colors">
+                    contact@insightsnap.co
+                  </a>
+                </div>
+              </div>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-4">Support</h4>
+              <ul className="space-y-2 text-gray-400">
+                <li>
+                  <button 
+                    onClick={onBlog}
+                    className="hover:text-white transition-colors text-left w-full"
+                  >
+                    Blog
+                  </button>
+                </li>
+                <li>
+                  <button 
+                    onClick={onContact}
+                    className="hover:text-white transition-colors text-left w-full"
+                  >
+                    Contact Us
+                  </button>
+                </li>
+                <li>
+                  <button 
+                    onClick={onPrivacyPolicy}
+                    className="hover:text-white transition-colors text-left w-full"
+                  >
+                    Privacy Policy
+                  </button>
+                </li>
+                <li>
+                  <button 
+                    onClick={onTermsAndConditions}
+                    className="hover:text-white transition-colors text-left w-full"
+                  >
+                    Terms & Conditions
+                  </button>
+                </li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-4">Follow Us</h4>
+              <div className="flex space-x-4">
+                <a href="https://x.com/InsightSnapAI" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors" title="X (Twitter)">
+                  <Twitter className="w-5 h-5" />
+                </a>
+                <a href="https://www.facebook.com/InsightsnapAI/" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors" title="Facebook">
+                  <Facebook className="w-5 h-5" />
+                </a>
+                <a href="https://www.instagram.com/insightsnap.ai/" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors" title="Instagram">
+                  <Instagram className="w-5 h-5" />
+                </a>
+                <a href="https://www.youtube.com/@InsightSnap_AI" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors" title="YouTube">
+                  <Youtube className="w-5 h-5" />
+                </a>
+                <a href="https://www.reddit.com/user/InsightSnap/" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors" title="Reddit">
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z"/>
+                  </svg>
+                </a>
+              </div>
+            </div>
+          </div>
+          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
+            <p>&copy; 2025 InsightSnap. All rights reserved.</p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };

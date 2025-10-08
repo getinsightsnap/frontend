@@ -1,5 +1,4 @@
 const express = require('express');
-const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
 const morgan = require('morgan');
@@ -7,6 +6,7 @@ const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
 const logger = require('./utils/logger');
+const corsMiddleware = require('./middleware/cors');
 const searchRoutes = require('./routes/search');
 const redditRoutes = require('./routes/reddit');
 const xRoutes = require('./routes/x');
@@ -20,12 +20,7 @@ app.use(helmet({
 }));
 
 // CORS configuration
-app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
-}));
+app.use(corsMiddleware);
 
 // Compression middleware
 app.use(compression());

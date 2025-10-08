@@ -31,6 +31,13 @@ const AuthModal: React.FC<AuthModalProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  const resetForm = () => {
+    setEmail('');
+    setPassword('');
+    setName('');
+    setShowPassword(false);
+  };
+
   // Reset loading state when modal closes or when there's an error
   useEffect(() => {
     if (!isOpen) {
@@ -149,13 +156,6 @@ const AuthModal: React.FC<AuthModalProps> = ({
       console.error('Google sign in error:', error);
       setIsLoading(false);
     }
-  };
-
-  const resetForm = () => {
-    setEmail('');
-    setPassword('');
-    setName('');
-    setShowPassword(false);
   };
 
   const handleClose = () => {

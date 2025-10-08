@@ -7,6 +7,7 @@ interface SearchLimitModalProps {
   onSignUp: () => void;
   searchCount: number;
   userTier?: 'free' | 'standard' | 'pro';
+  isLoggedIn?: boolean;
 }
 
 const SearchLimitModal: React.FC<SearchLimitModalProps> = ({
@@ -14,7 +15,8 @@ const SearchLimitModal: React.FC<SearchLimitModalProps> = ({
   onClose,
   onSignUp,
   searchCount,
-  userTier = 'free'
+  userTier = 'free',
+  isLoggedIn = false
 }) => {
   if (!isOpen) return null;
 
@@ -45,15 +47,31 @@ const SearchLimitModal: React.FC<SearchLimitModalProps> = ({
 
         {/* Content */}
         <div className="p-6">
-          <p className="text-gray-600 mb-4">
-            You've used {searchCount} of your {currentLimit} daily searches.
-          </p>
-          
-          {userTier === 'free' && (
+          {!isLoggedIn ? (
             <>
-              <p className="text-gray-600 mb-6">
-                Upgrade to unlock more searches and additional features!
+              <p className="text-gray-600 mb-4">
+                You've reached your limit of 5 searches. Sign up to get 5 searches per day for free!
               </p>
+              <p className="text-gray-900 font-medium mb-4">
+                Create a free account to continue searching
+              </p>
+            </>
+          ) : (
+            <p className="text-gray-600 mb-4">
+              You've reached your daily limit of {currentLimit} searches.
+            </p>
+          )}
+          
+          {!isLoggedIn ? (
+            <>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                <h3 className="font-semibold text-gray-900 mb-2">Free Account Benefits</h3>
+                <ul className="text-sm text-gray-600 space-y-1 ml-4 list-disc">
+                  <li>5 searches per day (resets every 24 hours)</li>
+                  <li>AI-powered insights from Reddit & X</li>
+                  <li>No credit card required</li>
+                </ul>
+              </div>
               
               <div className="space-y-3">
                 <button
@@ -61,9 +79,95 @@ const SearchLimitModal: React.FC<SearchLimitModalProps> = ({
                     onSignUp();
                     onClose();
                   }}
-                  className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                  className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-md"
                 >
-                  Upgrade to Standard
+                  Sign Up for Free
+                </button>
+                
+                <button
+                  onClick={onClose}
+                  className="w-full bg-gray-100 text-gray-700 py-3 px-4 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+                >
+                  Maybe Later
+                </button>
+              </div>
+            </>
+          ) : userTier === 'free' && isLoggedIn ? (
+            <>
+              <p className="text-gray-900 font-medium mb-4">
+                Upgrade to get more searches and unlock premium features!
+              </p>
+              
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                <div className="space-y-3">
+                  <div>
+                    <h3 className="font-semibold text-gray-900 mb-2">Standard Plan - $6.99/month</h3>
+                    <ul className="text-sm text-gray-600 space-y-1 ml-4 list-disc">
+                      <li>50 searches per day</li>
+                      <li>Time period filtering</li>
+                      <li>30 exports to CSV/PDF per month</li>
+                      <li><span className="text-blue-600 font-medium">🎁 7-day FREE trial</span></li>
+                    </ul>
+                  </div>
+                  <div className="pt-2 border-t border-blue-200">
+                    <h3 className="font-semibold text-gray-900 mb-2">Pro Plan - $14.99/month</h3>
+                    <ul className="text-sm text-gray-600 space-y-1 ml-4 list-disc">
+                      <li>Unlimited searches</li>
+                      <li>Advanced time filtering</li>
+                      <li>Auto-translation & Priority support</li>
+                      <li><span className="text-blue-600 font-medium">🎁 7-day FREE trial (for Standard users)</span></li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="space-y-3">
+                <button
+                  onClick={() => {
+                    onSignUp();
+                    onClose();
+                  }}
+                  className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-md"
+                >
+                  Start Free Trial - Upgrade Now
+                </button>
+                
+                <button
+                  onClick={onClose}
+                  className="w-full bg-gray-100 text-gray-700 py-3 px-4 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+                >
+                  Maybe Later
+                </button>
+              </div>
+            </>
+          ) : null}
+          
+          {userTier === 'standard' && (
+            <>
+              <p className="text-gray-900 font-medium mb-4">
+                Upgrade to Pro for unlimited searches!
+              </p>
+              
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                <h3 className="font-semibold text-gray-900 mb-2">Pro Plan - $14.99/month</h3>
+                <ul className="text-sm text-gray-600 space-y-1 ml-4 list-disc">
+                  <li>Unlimited searches</li>
+                  <li>Advanced time filtering</li>
+                  <li>Auto-translation</li>
+                  <li>Priority support & Trend alerts</li>
+                  <li><span className="text-blue-600 font-medium">🎁 7-day FREE trial</span></li>
+                </ul>
+              </div>
+              
+              <div className="space-y-3">
+                <button
+                  onClick={() => {
+                    onSignUp();
+                    onClose();
+                  }}
+                  className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-md"
+                >
+                  Start Free Trial - Upgrade to Pro
                 </button>
                 
                 <button
@@ -76,7 +180,7 @@ const SearchLimitModal: React.FC<SearchLimitModalProps> = ({
             </>
           )}
           
-          {userTier !== 'free' && (
+          {userTier === 'pro' && (
             <button
               onClick={onClose}
               className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium"

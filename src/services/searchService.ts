@@ -151,7 +151,7 @@ export class SearchService {
    */
   static getTierLimits(userTier: string) {
     return {
-      maxSearches: userTier === 'free' ? 5 : userTier === 'standard' ? 10 : 999,
+      maxSearches: userTier === 'free' ? 5 : userTier === 'standard' ? 50 : 999999,
       resultsPerCategory: userTier === 'free' ? 3 : userTier === 'standard' ? 5 : 999
     };
   }
