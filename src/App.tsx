@@ -532,42 +532,49 @@ function App() {
   };
 
   const handlePricing = () => {
-    const scrollToPricing = () => {
+    if (currentView === 'landing') {
+      // If already on landing page, just scroll to pricing section
       const pricingSection = document.getElementById('pricing');
       if (pricingSection) {
         pricingSection.scrollIntoView({ behavior: 'smooth' });
         console.log('✅ Scrolled to pricing section');
-        return true;
       }
-      return false;
-    };
-
-    if (currentView === 'landing') {
-      // If already on landing page, just scroll to pricing section
-      scrollToPricing();
     } else {
-      // If on different page, navigate first then scroll
-      navigateTo('landing');
+      // If on different page, navigate to landing first with proper state update
+      const previousView = currentView;
+      setNavigationHistory(prev => [...prev, 'landing']);
+      setCurrentView('landing');
       
-      // Use requestAnimationFrame for better timing
-      const attemptScroll = (attempts = 0) => {
-        if (attempts > 10) {
-          console.warn('⚠️ Failed to scroll to pricing section after multiple attempts');
-          return;
-        }
-        
-        if (scrollToPricing()) {
-          return;
-        }
-        
-        // Try again on next frame
-        requestAnimationFrame(() => {
-          setTimeout(() => attemptScroll(attempts + 1), 50);
-        });
-      };
+      // Update URL to landing page (without hash to avoid invalid URL)
+      window.history.pushState({ view: 'landing' }, '', '/');
       
-      // Start attempting to scroll after a short delay
-      setTimeout(() => attemptScroll(), 100);
+      // Track navigation
+      console.log('📊 Page navigation tracked:', previousView, '->', 'landing');
+      
+      // Wait for React to update the view and render the landing page
+      // Use a more reliable approach with useEffect-like timing
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          const attemptScroll = (attempts = 0) => {
+            if (attempts > 20) {
+              console.warn('⚠️ Failed to scroll to pricing section after multiple attempts');
+              return;
+            }
+            
+            const pricingSection = document.getElementById('pricing');
+            if (pricingSection) {
+              pricingSection.scrollIntoView({ behavior: 'smooth' });
+              console.log('✅ Scrolled to pricing section after navigation');
+              return;
+            }
+            
+            // Try again after a short delay
+            setTimeout(() => attemptScroll(attempts + 1), 100);
+          };
+          
+          attemptScroll();
+        }, 200);
+      });
     }
     console.log('📊 Pricing navigation tracked');
   };
