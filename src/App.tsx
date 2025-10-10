@@ -849,6 +849,7 @@ function App() {
           onPrivacyPolicy={handlePrivacyPolicy}
           onTermsAndConditions={handleTermsAndConditions}
           onBlog={handleBlog}
+          onPricing={handlePricing}
           user={user}
           onSignOut={handleSignOut}
         />

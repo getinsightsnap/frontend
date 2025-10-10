@@ -17,11 +17,12 @@ interface LandingPageProps {
   onPrivacyPolicy: () => void;
   onTermsAndConditions: () => void;
   onBlog: () => void;
+  onPricing: () => void;
   user: User | null;
   onSignOut: () => void;
 }
 
-const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin, onSignUp, onContact, onPrivacyPolicy, onTermsAndConditions, onBlog, user, onSignOut }) => {
+const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin, onSignUp, onContact, onPrivacyPolicy, onTermsAndConditions, onBlog, onPricing, user, onSignOut }) => {
   const handleLogoClick = () => {
     // Scroll to top of the page
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -148,9 +149,12 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin, onSign
               </button>
             </div>
             <div className="hidden md:flex items-center space-x-6">
-              <a href="#pricing" className="text-gray-600 hover:text-gray-900 font-medium transition-colors">
+              <button 
+                onClick={onPricing}
+                className="text-gray-600 hover:text-gray-900 font-medium transition-colors"
+              >
                 Pricing
-              </a>
+              </button>
               <button 
                 onClick={onBlog}
                 className="text-gray-600 hover:text-gray-900 font-medium transition-colors"
