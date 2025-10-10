@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { AuthService } from '../services/authService';
+import { NotificationService } from '../services/notificationService';
 
 interface User {
   id: string;
@@ -111,6 +112,15 @@ const AuthCallback: React.FC<AuthCallbackProps> = ({ onAuthComplete }) => {
             };
             
             console.log('✅ Using extracted user data:', userData);
+            
+            // Send admin notification for Google signup (don't block auth flow)
+            NotificationService.notifyNewSignup({
+              email: userData.email,
+              name: userData.name,
+              subscription_tier: 'free',
+              signup_method: 'google'
+            }).catch(err => console.error('Failed to send signup notification:', err));
+            
             console.log('🚀 Calling onAuthComplete...');
             onAuthComplete(userData);
             return;

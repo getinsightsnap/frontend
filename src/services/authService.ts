@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase'
+import { NotificationService } from './notificationService'
 
 export class AuthService {
   // Sign in with Google
@@ -65,6 +66,19 @@ export class AuthService {
         } catch (err) {
           console.error('Exception creating profile:', err)
           // Continue with signup process even if profile creation fails
+        }
+
+        // Send admin notification (don't block signup if this fails)
+        try {
+          await NotificationService.notifyNewSignup({
+            email: data.user.email || '',
+            name: name,
+            subscription_tier: 'free',
+            signup_method: 'email'
+          })
+        } catch (notifError) {
+          console.error('Failed to send signup notification:', notifError)
+          // Don't throw - signup should succeed even if notification fails
         }
       }
 
