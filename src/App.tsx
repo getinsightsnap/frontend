@@ -110,13 +110,13 @@ function App() {
       try {
         console.log('🚀 App initializing...');
         
-        // Check if we have stored state - if so, skip initialization to preserve state
+        // Check if we have stored state - if auth-callback view, don't skip initialization
         const storedView = sessionStorage.getItem('currentView');
         const storedUser = sessionStorage.getItem('currentUser');
         const hasStoredResults = sessionStorage.getItem('currentResults');
         
-        // If we have stored state, just restore it and skip re-initialization
-        if (storedView && (storedUser || hasStoredResults)) {
+        // If we have stored state AND it's not an auth callback, preserve it
+        if (storedView && storedView !== 'auth-callback' && (storedUser || hasStoredResults)) {
           console.log('⚠️ Stored state detected - skipping initialization to preserve state');
           console.log('📦 Preserved view:', storedView);
           console.log('👤 Preserved user:', storedUser ? 'Yes' : 'No');
@@ -280,11 +280,13 @@ function App() {
           }
           
           // Check if user is already set to prevent duplicate processing
-          const currentUser = user;
-          if (currentUser && currentUser.email === session.user.email) {
-            console.log('✅ User already set, skipping duplicate processing');
+          // Use a flag to check if we're already processing this user
+          const processingKey = `processing_auth_${session.user.id}`;
+          if (sessionStorage.getItem(processingKey)) {
+            console.log('✅ Already processing this user, skipping duplicate');
             return;
           }
+          sessionStorage.setItem(processingKey, 'true');
           
           // Check if we have stored user data to preserve tier and search count
           const storedUser = sessionStorage.getItem('currentUser');
@@ -318,6 +320,9 @@ function App() {
           setUser(userData);
           console.log('✅ User set:', userData.email, 'Tier:', userData.subscription_tier);
           
+          // Clear processing flag
+          sessionStorage.removeItem(processingKey);
+          
           // Only navigate to dashboard if this is a NEW sign-in (not restoring existing session)
           // Check if we have a stored view - if so, preserve it
           const storedView = sessionStorage.getItem('currentView');
@@ -345,7 +350,16 @@ function App() {
         }
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
-        console.log(' User signed out');
+        // Clear all processing flags
+        const keysToRemove = [];
+        for (let i = 0; i < sessionStorage.length; i++) {
+          const key = sessionStorage.key(i);
+          if (key && key.startsWith('processing_auth_')) {
+            keysToRemove.push(key);
+          }
+        }
+        keysToRemove.forEach(key => sessionStorage.removeItem(key));
+        console.log('👋 User signed out');
         console.log('📊 User signed out tracked');
       }
     });
@@ -754,7 +768,33 @@ function App() {
     }
   };
 
-  const handleAuthComplete = () => {
+  const handleAuthComplete = async (userData?: User) => {
+    console.log('🔐 handleAuthComplete called with userData:', userData?.email || 'no data');
+    
+    // If user data is provided, set it immediately
+    if (userData) {
+      console.log('✅ Setting user from callback:', userData.email);
+      setUser(userData);
+    } else {
+      // Fallback: try to get current user from session
+      try {
+        const { user: authUser, profile } = await AuthService.getCurrentUser();
+        if (authUser) {
+          const finalUserData: User = {
+            id: authUser.id,
+            name: profile?.name || authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'User',
+            email: profile?.email || authUser.email || '',
+            subscription_tier: profile?.subscription_tier || 'free',
+            search_count: profile?.search_count || 0
+          };
+          console.log('✅ Setting user from session:', finalUserData.email);
+          setUser(finalUserData);
+        }
+      } catch (error) {
+        console.error('Failed to get user from session:', error);
+      }
+    }
+    
     // Only navigate to dashboard if we're on landing/auth pages, otherwise preserve view
     const storedView = sessionStorage.getItem('currentView');
     

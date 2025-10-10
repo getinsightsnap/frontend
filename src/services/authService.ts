@@ -4,10 +4,15 @@ export class AuthService {
   // Sign in with Google
   static async signInWithGoogle() {
     try {
+      // Clear any stored state before OAuth to ensure clean slate
+      sessionStorage.removeItem('currentView');
+      sessionStorage.removeItem('currentUser');
+      
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`
+          redirectTo: `${window.location.origin}/auth/callback`,
+          skipBrowserRedirect: false
         }
       })
 
