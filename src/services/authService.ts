@@ -264,15 +264,17 @@ export class AuthService {
   }
 
   // Update script generation count (lifetime tracking, no reset)
-  static async updateScriptCount(userId: string, increment: number = 1) {
+  static async updateScriptCount(userId: string | undefined, increment: number = 1) {
     try {
-      const storageKey = `script_count_${userId}`;
+      // Use 'anonymous' as fallback for non-signed-in users
+      const trackingId = userId || 'anonymous';
+      const storageKey = `script_count_${trackingId}`;
       
       let currentCount = parseInt(localStorage.getItem(storageKey) || '0', 10);
       const newCount = currentCount + increment;
       localStorage.setItem(storageKey, newCount.toString());
       
-      console.log(`📊 Updated script count for user ${userId}: ${currentCount} -> ${newCount}`);
+      console.log(`📊 Updated script count for user ${trackingId}: ${currentCount} -> ${newCount}`);
       
       return { data: { script_count: newCount }, error: null }
     } catch (error) {
@@ -282,9 +284,11 @@ export class AuthService {
   }
 
   // Get current script generation count (lifetime tracking)
-  static async getScriptCount(userId: string): Promise<number> {
+  static async getScriptCount(userId: string | undefined): Promise<number> {
     try {
-      const storageKey = `script_count_${userId}`;
+      // Use 'anonymous' as fallback for non-signed-in users
+      const trackingId = userId || 'anonymous';
+      const storageKey = `script_count_${trackingId}`;
       return parseInt(localStorage.getItem(storageKey) || '0', 10);
     } catch (error) {
       console.error('Get script count error:', error);

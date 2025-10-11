@@ -43,7 +43,8 @@ const ScriptGenerationModal: React.FC<ScriptGenerationModalProps> = ({
   // Load script count for free users
   useEffect(() => {
     const loadScriptCount = async () => {
-      if (userTier === 'free' && userId) {
+      if (userTier === 'free') {
+        // Track script count for all free users (signed in or not)
         const count = await AuthService.getScriptCount(userId);
         setScriptCount(count);
       }
@@ -121,8 +122,8 @@ const ScriptGenerationModal: React.FC<ScriptGenerationModalProps> = ({
       
       setGeneratedScript(script);
 
-      // Update script count for free users
-      if (userTier === 'free' && userId) {
+      // Update script count for free users (signed in or not)
+      if (userTier === 'free') {
         await AuthService.updateScriptCount(userId);
         const newCount = await AuthService.getScriptCount(userId);
         setScriptCount(newCount);
@@ -171,6 +172,18 @@ const ScriptGenerationModal: React.FC<ScriptGenerationModalProps> = ({
     setError(null);
     setCopiedToClipboard(false);
     setIsGenerating(false);
+  };
+
+  const handleGenerateAnother = async () => {
+    setGeneratedScript(null);
+    setError(null);
+    
+    // Refresh script count for free users
+    if (userTier === 'free') {
+      const count = await AuthService.getScriptCount(userId);
+      setScriptCount(count);
+      console.log(`🔄 Script count refreshed: ${count}/${scriptLimits.free}`);
+    }
   };
 
   const handleClose = () => {
@@ -481,7 +494,7 @@ const ScriptGenerationModal: React.FC<ScriptGenerationModalProps> = ({
 
               {/* Generate Another Button */}
               <button
-                onClick={() => setGeneratedScript(null)}
+                onClick={handleGenerateAnother}
                 className="w-full bg-gray-100 text-gray-700 py-3 px-6 rounded-lg hover:bg-gray-200 transition-colors font-medium"
               >
                 Generate Another Script
