@@ -92,7 +92,7 @@ const ScriptGenerationModal: React.FC<ScriptGenerationModalProps> = ({
   const handleGenerateScript = async () => {
     if (!canGenerateScript) {
       if (userTier === 'free' && scriptCount >= scriptLimits.free) {
-        setError(`You've reached your limit of ${scriptLimits.free} scripts per day. Upgrade to generate more!`);
+        setError(`You've reached your limit of ${scriptLimits.free} free scripts. Upgrade to generate more!`);
       } else {
         onUpgrade();
       }
@@ -217,10 +217,10 @@ const ScriptGenerationModal: React.FC<ScriptGenerationModalProps> = ({
                 <Sparkles className="w-8 h-8 text-purple-600" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Daily Script Limit Reached
+                Script Limit Reached
               </h3>
               <p className="text-gray-600 mb-6 max-w-md mx-auto">
-                You've used all {scriptLimits.free} of your free scripts today. Upgrade to generate up to {scriptLimits.standard} scripts per day with Standard, or unlimited with Pro!
+                You've used all {scriptLimits.free} of your free scripts. Upgrade to Standard for {scriptLimits.standard} scripts per day, or Pro for unlimited script generation!
               </p>
               <div className="bg-gray-50 rounded-lg p-4 mb-6">
                 <h4 className="font-medium text-gray-900 mb-2">Upgrade to get:</h4>
@@ -251,7 +251,7 @@ const ScriptGenerationModal: React.FC<ScriptGenerationModalProps> = ({
                   {userTier === 'free' && !isLoadingCount && (
                     <div className="flex items-center gap-2">
                       <span className={`text-sm font-medium ${remainingScripts > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {remainingScripts} / {scriptLimits.free} scripts remaining today
+                        {remainingScripts} / {scriptLimits.free} scripts remaining
                       </span>
                     </div>
                   )}
