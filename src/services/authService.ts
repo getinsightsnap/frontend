@@ -263,6 +263,66 @@ export class AuthService {
     }
   }
 
+  // Update script generation count with daily reset logic
+  static async updateScriptCount(userId: string, increment: number = 1) {
+    try {
+      const storageKey = `script_count_${userId}`;
+      const lastResetKey = `last_script_reset_${userId}`;
+      
+      // Check if we need to reset the count (24 hours have passed)
+      const lastResetDate = localStorage.getItem(lastResetKey);
+      const now = new Date();
+      const shouldReset = this.shouldResetSearchCount(lastResetDate);
+      
+      let currentCount = parseInt(localStorage.getItem(storageKey) || '0', 10);
+      
+      // Reset count if 24 hours have passed
+      if (shouldReset) {
+        console.log(`🔄 Resetting script count for user ${userId} - 24 hours have passed`);
+        currentCount = 0;
+        localStorage.setItem(lastResetKey, now.toISOString());
+      }
+      
+      const newCount = currentCount + increment;
+      localStorage.setItem(storageKey, newCount.toString());
+      
+      // Set last reset date if it doesn't exist
+      if (!lastResetDate) {
+        localStorage.setItem(lastResetKey, now.toISOString());
+      }
+      
+      console.log(`📊 Updated script count for user ${userId}: ${currentCount} -> ${newCount}`);
+      
+      return { data: { script_count: newCount }, error: null }
+    } catch (error) {
+      console.error('Update script count error:', error)
+      return { data: null, error }
+    }
+  }
+
+  // Get current script generation count with automatic reset check
+  static async getScriptCount(userId: string): Promise<number> {
+    try {
+      const storageKey = `script_count_${userId}`;
+      const lastResetKey = `last_script_reset_${userId}`;
+      
+      const lastResetDate = localStorage.getItem(lastResetKey);
+      const shouldReset = this.shouldResetSearchCount(lastResetDate);
+      
+      if (shouldReset) {
+        console.log(`🔄 Resetting script count for user ${userId} - 24 hours have passed`);
+        localStorage.setItem(storageKey, '0');
+        localStorage.setItem(lastResetKey, new Date().toISOString());
+        return 0;
+      }
+      
+      return parseInt(localStorage.getItem(storageKey) || '0', 10);
+    } catch (error) {
+      console.error('Get script count error:', error);
+      return 0;
+    }
+  }
+
   // Save search history
   static async saveSearchHistory(userId: string, searchData: {
     query: string

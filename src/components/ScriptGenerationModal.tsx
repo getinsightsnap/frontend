@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Download, Copy, Check, Loader, FileText, Video, Mail, Share2, Sparkles } from 'lucide-react';
 import { ContentGenerationService, ScriptRequest, GeneratedScript } from '../services/contentGenerationService';
 import { SocialPost } from '../services/apiConfig';
+import { AuthService } from '../services/authService';
 
 interface ScriptGenerationModalProps {
   isOpen: boolean;
@@ -9,6 +10,7 @@ interface ScriptGenerationModalProps {
   category: 'painPoints' | 'trendingIdeas' | 'contentIdeas';
   posts: SocialPost[];
   userTier: 'free' | 'standard' | 'pro';
+  userId?: string;
   onUpgrade: () => void;
 }
 
@@ -18,6 +20,7 @@ const ScriptGenerationModal: React.FC<ScriptGenerationModalProps> = ({
   category,
   posts,
   userTier,
+  userId,
   onUpgrade
 }) => {
   const [selectedPlatform, setSelectedPlatform] = useState<'all' | 'reddit' | 'x' | 'youtube'>('all');
@@ -28,16 +31,40 @@ const ScriptGenerationModal: React.FC<ScriptGenerationModalProps> = ({
   const [generatedScript, setGeneratedScript] = useState<GeneratedScript | null>(null);
   const [copiedToClipboard, setCopiedToClipboard] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [scriptCount, setScriptCount] = useState<number>(0);
+  const [isLoadingCount, setIsLoadingCount] = useState(true);
+
+  const scriptLimits = {
+    free: 3,
+    standard: 25,
+    pro: 999999
+  };
+
+  // Load script count for free users
+  useEffect(() => {
+    const loadScriptCount = async () => {
+      if (userTier === 'free' && userId) {
+        const count = await AuthService.getScriptCount(userId);
+        setScriptCount(count);
+      }
+      setIsLoadingCount(false);
+    };
+    
+    if (isOpen) {
+      loadScriptCount();
+    }
+  }, [isOpen, userTier, userId]);
 
   if (!isOpen) return null;
 
   // Check if user can generate scripts
-  const canGenerateScript = userTier !== 'free';
-  const scriptLimits = {
-    free: 0,
-    standard: 25,
-    pro: 999999
-  };
+  const userLimit = scriptLimits[userTier];
+  const canGenerateScript = userTier === 'free' 
+    ? scriptCount < scriptLimits.free
+    : true;
+  const remainingScripts = userTier === 'free' 
+    ? Math.max(0, scriptLimits.free - scriptCount)
+    : userLimit;
 
   const categoryTitles = {
     painPoints: 'Pain Points',
@@ -64,7 +91,11 @@ const ScriptGenerationModal: React.FC<ScriptGenerationModalProps> = ({
 
   const handleGenerateScript = async () => {
     if (!canGenerateScript) {
-      onUpgrade();
+      if (userTier === 'free' && scriptCount >= scriptLimits.free) {
+        setError(`You've reached your limit of ${scriptLimits.free} scripts per day. Upgrade to generate more!`);
+      } else {
+        onUpgrade();
+      }
       return;
     }
 
@@ -89,6 +120,14 @@ const ScriptGenerationModal: React.FC<ScriptGenerationModalProps> = ({
       console.log('✅ Script generated:', script);
       
       setGeneratedScript(script);
+
+      // Update script count for free users
+      if (userTier === 'free' && userId) {
+        await AuthService.updateScriptCount(userId);
+        const newCount = await AuthService.getScriptCount(userId);
+        setScriptCount(newCount);
+        console.log(`📊 Free user script count updated: ${newCount}/${scriptLimits.free}`);
+      }
     } catch (err) {
       console.error('❌ Script generation error:', err);
       setError('Failed to generate script. Please try again.');
@@ -171,27 +210,27 @@ const ScriptGenerationModal: React.FC<ScriptGenerationModalProps> = ({
         </div>
 
         <div className="p-6 overflow-y-auto max-h-[calc(90vh-80px)]">
-          {!canGenerateScript ? (
-            /* Upgrade Prompt for Free Users */
+          {!canGenerateScript && userTier === 'free' ? (
+            /* Limit Reached - Upgrade Prompt for Free Users */
             <div className="text-center py-8">
               <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Sparkles className="w-8 h-8 text-purple-600" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Script Generation Available with Standard & Pro
+                Daily Script Limit Reached
               </h3>
               <p className="text-gray-600 mb-6 max-w-md mx-auto">
-                Upgrade your plan to generate unlimited AI-powered scripts based on your research insights.
+                You've used all {scriptLimits.free} of your free scripts today. Upgrade to generate up to {scriptLimits.standard} scripts per day with Standard, or unlimited with Pro!
               </p>
               <div className="bg-gray-50 rounded-lg p-4 mb-6">
-                <h4 className="font-medium text-gray-900 mb-2">What you'll get:</h4>
+                <h4 className="font-medium text-gray-900 mb-2">Upgrade to get:</h4>
                 <ul className="text-sm text-gray-600 space-y-1">
-                  <li>• AI-powered script generation using Perplexity AI</li>
+                  <li>• Standard: {scriptLimits.standard} scripts per day</li>
+                  <li>• Pro: Unlimited script generation</li>
                   <li>• Multiple content formats (Video, Blog, Social, Email)</li>
                   <li>• Customizable tone and length</li>
                   <li>• Ready-to-use hashtags and CTAs</li>
                   <li>• Export and download options</li>
-                  <li>• Based on real-time social media data</li>
                 </ul>
               </div>
               <button
@@ -205,9 +244,18 @@ const ScriptGenerationModal: React.FC<ScriptGenerationModalProps> = ({
             /* Script Configuration */
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-4">
-                  Configure Your Script
-                </h3>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-medium text-gray-900">
+                    Configure Your Script
+                  </h3>
+                  {userTier === 'free' && !isLoadingCount && (
+                    <div className="flex items-center gap-2">
+                      <span className={`text-sm font-medium ${remainingScripts > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {remainingScripts} / {scriptLimits.free} scripts remaining today
+                      </span>
+                    </div>
+                  )}
+                </div>
                 
                 {/* Show the source post(s) */}
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">

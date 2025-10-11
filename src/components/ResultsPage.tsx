@@ -409,6 +409,7 @@ const ResultsPage: React.FC<ResultsPageProps> = ({
         category={scriptModalCategory}
         posts={scriptModalPosts}
         userTier={userTier}
+        userId={user?.id}
         onUpgrade={onSignUp}
       />
 
