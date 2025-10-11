@@ -68,6 +68,7 @@ const SearchLimitModal: React.FC<SearchLimitModalProps> = ({
                 <h3 className="font-semibold text-gray-900 mb-2">Free Account Benefits</h3>
                 <ul className="text-sm text-gray-600 space-y-1 ml-4 list-disc">
                   <li>5 searches per day (resets every 24 hours)</li>
+                  <li>3 AI script generations (lifetime)</li>
                   <li>AI-powered insights from Reddit & X</li>
                   <li>No credit card required</li>
                 </ul>
