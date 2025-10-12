@@ -16,10 +16,14 @@ class XService {
         throw new Error('X API bearer token not configured');
       }
 
-      // Build search query with language filter
+      // Build search query with language filter and exclude promoted content
       let searchQuery = query;
+      
+      // Add filters to exclude promoted/sponsored content
+      searchQuery += ' -is:retweet -is:reply';
+      
       if (language !== 'en') {
-        searchQuery = `${query} lang:${language}`;
+        searchQuery += ` lang:${language}`;
       }
 
       // Calculate start time based on time filter

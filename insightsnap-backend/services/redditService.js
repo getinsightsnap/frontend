@@ -17,11 +17,13 @@ class RedditService {
     try {
       const allPosts = [];
       
-      // Search popular subreddits
+      // Search relevant subreddits (removed irrelevant ones like AskReddit, worldnews, news)
       const subreddits = [
-        'AskReddit', 'worldnews', 'news', 'entrepreneur', 'business',
-        'startups', 'marketing', 'technology', 'programming', 'investing',
-        'personalfinance', 'productivity', 'careerguidance', 'smallbusiness'
+        'entrepreneur', 'business', 'startups', 'marketing', 'technology', 
+        'programming', 'investing', 'personalfinance', 'productivity', 
+        'careerguidance', 'smallbusiness', 'artificial', 'MachineLearning',
+        'AI', 'digitalmarketing', 'socialmedia', 'content_marketing',
+        'marketingautomation', 'advertising', 'PPC', 'SEO'
       ];
 
       // Search each subreddit in parallel (with concurrency limit)
