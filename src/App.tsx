@@ -13,6 +13,7 @@ import BlogPage from './components/BlogPage';
 import { AuthService } from './services/authService';
 import { supabase } from './lib/supabase';
 import { AnalyzedResults } from './services/apiConfig';
+import { MetaPixelService } from './services/metaPixelService';
 
 interface User {
   id: string;
@@ -139,6 +140,15 @@ function App() {
           hasBackendUrl: !!import.meta.env.VITE_BACKEND_URL,
           hasMetaPixelId: !!import.meta.env.VITE_META_PIXEL_ID
         });
+        
+        // Initialize Meta Pixel if configured
+        const metaPixelId = import.meta.env.VITE_META_PIXEL_ID;
+        if (metaPixelId) {
+          MetaPixelService.initialize(metaPixelId);
+          console.log('📊 Meta Pixel initialized');
+        } else {
+          console.warn('⚠️ Meta Pixel ID not configured');
+        }
         
         // Track app initialization
         console.log('📊 App initialization tracked');
