@@ -323,12 +323,9 @@ const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack, onHome, onContact
                   </button>
                 </li>
                 <li>
-                  <button 
-                    onClick={onPrivacyPolicy}
-                    className="hover:text-white transition-colors text-left w-full"
-                  >
+                  <span className="text-white font-semibold">
                     Privacy Policy
-                  </button>
+                  </span>
                 </li>
                 <li>
                   <button 
