@@ -107,6 +107,36 @@ router.get('/debug', async (req, res) => {
   });
 });
 
+// Test endpoint to check YouTube specifically
+router.get('/test-youtube', async (req, res) => {
+  try {
+    const query = req.query.q || 'AI marketing';
+    const timeFilter = req.query.timeFilter || 'week';
+    
+    logger.info(`🧪 Testing YouTube search for: "${query}"`);
+    
+    const posts = await YouTubeService.searchPosts(query, 'en', timeFilter, 10);
+    
+    res.json({
+      success: true,
+      query,
+      timeFilter,
+      postsCount: posts.length,
+      posts: posts.slice(0, 3), // Return first 3 for debugging
+      apiKeyConfigured: !!process.env.YOUTUBE_API_KEY,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    logger.error('YouTube test error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      stack: error.stack,
+      apiKeyConfigured: !!process.env.YOUTUBE_API_KEY
+    });
+  }
+});
+
 // Main search endpoint
 router.post('/', validateSearchRequest, async (req, res) => {
   try {
