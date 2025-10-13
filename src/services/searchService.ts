@@ -29,8 +29,18 @@ export class SearchService {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({}));
         console.error('❌ Search API error:', errorData);
+        
+        // Handle specific error cases
+        if (response.status === 429) {
+          throw new Error('⚠️ Too many searches. Please wait a few minutes and try again.');
+        } else if (response.status === 503) {
+          throw new Error('⚠️ Service temporarily unavailable due to high traffic. Please try again in a minute.');
+        } else if (response.status >= 500) {
+          throw new Error('⚠️ Server error. Our team has been notified. Please try again shortly.');
+        }
+        
         throw new Error(errorData.message || `Search failed: ${response.status}`);
       }
 
@@ -65,12 +75,8 @@ export class SearchService {
     } catch (error) {
       console.error('❌ Search error:', error);
       
-      // Fallback to empty results
-      return {
-        painPoints: [],
-        trendingIdeas: [],
-        contentIdeas: []
-      };
+      // Re-throw error with user-friendly message
+      throw error;
     }
   }
 

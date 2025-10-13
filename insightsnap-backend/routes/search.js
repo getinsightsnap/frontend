@@ -43,28 +43,56 @@ router.post('/', validateSearchRequest, async (req, res) => {
       );
     }
 
-    // Wait for all API calls with overall timeout
+    // Wait for all API calls with overall timeout (increased for high traffic)
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Search timeout')), 25000) // 25 seconds
+      setTimeout(() => reject(new Error('Search timeout')), 45000) // Increased to 45 seconds
     );
 
-    const apiResults = await Promise.race([
-      Promise.allSettled(promises),
-      timeoutPromise
-    ]);
+    let apiResults;
+    try {
+      apiResults = await Promise.race([
+        Promise.allSettled(promises),
+        timeoutPromise
+      ]);
+    } catch (timeoutError) {
+      // If timeout occurs, still try to get partial results
+      logger.warn('⚠️ Search timeout occurred, attempting to get partial results');
+      apiResults = await Promise.allSettled(promises);
+    }
 
-    // Process results
+    // Process results with better error handling
     const errors = [];
+    const successfulPlatforms = [];
+    
     apiResults.forEach(result => {
       if (result.status === 'fulfilled' && result.value.success) {
         allPosts.push(...result.value.posts);
+        successfulPlatforms.push(result.value.platform);
         logger.info(`✅ ${result.value.platform}: ${result.value.posts.length} posts`);
       } else {
-        const error = result.status === 'fulfilled' ? result.value.error : result.reason.message;
-        errors.push(`${result.value?.platform || 'unknown'}: ${error}`);
-        logger.warn(`❌ ${result.value?.platform || 'unknown'} failed: ${error}`);
+        const error = result.status === 'fulfilled' ? result.value.error : result.reason?.message || 'Unknown error';
+        const platform = result.value?.platform || 'unknown';
+        errors.push(`${platform}: ${error}`);
+        logger.warn(`❌ ${platform} failed: ${error}`);
       }
     });
+
+    // Log success rate for monitoring
+    const successRate = (successfulPlatforms.length / promises.length) * 100;
+    logger.info(`📊 API Success Rate: ${successRate.toFixed(0)}% (${successfulPlatforms.length}/${promises.length} platforms)`);
+
+    // If all platforms failed, return helpful error
+    if (allPosts.length === 0 && errors.length > 0) {
+      logger.error('🚨 All platforms failed to return results');
+      return res.status(503).json({
+        success: false,
+        error: 'Service temporarily unavailable',
+        message: 'All data sources are currently unavailable. This may be due to high traffic or API rate limits. Please try again in a few minutes.',
+        details: errors,
+        retryAfter: 60, // Suggest retry after 60 seconds
+        timestamp: new Date().toISOString()
+      });
+    }
 
     // Categorize posts using AI
     let categorizedResults = {

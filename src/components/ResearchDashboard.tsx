@@ -222,9 +222,15 @@ const ResearchDashboard: React.FC<ResearchDashboardProps> = ({
       if (!searchResults.painPoints.length && !searchResults.trendingIdeas.length && !searchResults.contentIdeas.length) {
         setError('No results found. Try adjusting your search terms or time filter.');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Search error:', err);
-      setError('An error occurred while searching. Please try again.');
+      
+      // Display user-friendly error messages
+      const errorMessage = err?.message || 'An error occurred while searching. Please try again.';
+      setError(errorMessage);
+      
+      // Don't increment search count on error
+      console.warn('⚠️ Search failed, not incrementing search count');
     } finally {
       setIsLoading(false);
     }
