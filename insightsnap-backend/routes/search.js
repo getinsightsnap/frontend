@@ -203,7 +203,16 @@ router.post('/', validateSearchRequest, async (req, res) => {
     const errors = [];
     const successfulPlatforms = [];
     
-    apiResults.forEach(result => {
+    logger.info(`📦 Processing ${apiResults.length} API results...`);
+    
+    apiResults.forEach((result, index) => {
+      logger.debug(`Result ${index + 1}:`, { 
+        status: result.status, 
+        platform: result.value?.platform,
+        postsCount: result.value?.posts?.length,
+        success: result.value?.success
+      });
+      
       if (result.status === 'fulfilled' && result.value.success) {
         allPosts.push(...result.value.posts);
         successfulPlatforms.push(result.value.platform);
@@ -215,6 +224,8 @@ router.post('/', validateSearchRequest, async (req, res) => {
         logger.warn(`❌ ${platform} failed: ${error}`);
       }
     });
+    
+    logger.info(`📊 Total posts collected: ${allPosts.length} from platforms: [${successfulPlatforms.join(', ')}]`);
 
     // Log success rate for monitoring
     const successRate = (successfulPlatforms.length / promises.length) * 100;
