@@ -154,15 +154,15 @@ export class SearchService {
 
   /**
    * Apply tier-based result filtering
-   * Free: 3 results per category
-   * Standard: 5 results per category  
-   * Pro: All results
+   * Free: 3 results per category (mixed platforms)
+   * Standard: 5 results per category (mixed platforms)
+   * Pro: 10 results per category (ideally distributed across platforms)
    */
   private static applyTierFiltering(results: AnalyzedResults, userTier: string): AnalyzedResults {
     const limits = {
       free: 3,
       standard: 5,
-      pro: 999
+      pro: 10  // Changed from 999 to 10 for better UX
     };
 
     const limit = limits[userTier as keyof typeof limits] || limits.free;
@@ -180,7 +180,7 @@ export class SearchService {
   static getTierLimits(userTier: string) {
     return {
       maxSearches: userTier === 'free' ? 5 : userTier === 'standard' ? 50 : 999999,
-      resultsPerCategory: userTier === 'free' ? 3 : userTier === 'standard' ? 5 : 999
+      resultsPerCategory: userTier === 'free' ? 3 : userTier === 'standard' ? 5 : 10  // Pro users get 10 results per category
     };
   }
 }

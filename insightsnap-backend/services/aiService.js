@@ -288,23 +288,34 @@ Only include the JSON response, no other text.`;
       };
     }).filter(Boolean); // Remove nulls (promoted/irrelevant posts)
 
-    // Sort by score and categorize
+    // Sort by score and categorize - distribute posts more evenly
     scoredPosts.forEach(scored => {
       const { post, painScore, trendingScore, contentScore, isAccelerating } = scored;
       
-      // Categorize based on highest score
-      if (painScore > trendingScore && painScore > contentScore) {
+      // Determine highest score
+      const maxScore = Math.max(painScore, trendingScore, contentScore);
+      
+      // Categorize based on highest score (with minimum threshold of 0.5 to be categorized)
+      if (maxScore === painScore && painScore >= 0.5) {
         painPoints.push(post);
-      } else if (trendingScore > contentScore) {
+        logger.debug(`📍 Pain point: "${post.content.substring(0, 40)}..." (score: ${painScore.toFixed(2)})`);
+      } else if (maxScore === trendingScore && trendingScore >= 0.5) {
         trendingIdeas.push(post);
         if (isAccelerating) {
-          logger.debug(`🚀 Accelerating trend detected: "${post.content.substring(0, 50)}..." (engagement: ${scored.engagement})`);
+          logger.debug(`🚀 Accelerating trend: "${post.content.substring(0, 40)}..." (score: ${trendingScore.toFixed(2)}, engagement: ${scored.engagement})`);
         }
-      } else if (contentScore > 0) {
+      } else if (maxScore === contentScore && contentScore >= 0.5) {
         contentIdeas.push(post);
       } else {
-        // Default to content ideas if no clear category
-        contentIdeas.push(post);
+        // If all scores are low, distribute based on slight preference
+        // This ensures posts still get categorized even with low keyword matches
+        if (painScore >= trendingScore && painScore >= contentScore) {
+          painPoints.push(post);
+        } else if (trendingScore >= contentScore) {
+          trendingIdeas.push(post);
+        } else {
+          contentIdeas.push(post);
+        }
       }
     });
 

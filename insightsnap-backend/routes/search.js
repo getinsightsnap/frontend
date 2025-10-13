@@ -138,10 +138,17 @@ router.post('/', validateSearchRequest, async (req, res) => {
 
     // YouTube search
     if (platforms.includes('youtube')) {
+      logger.info('📺 YouTube search initiated...');
       promises.push(
         YouTubeService.searchPosts(query, language, timeFilter, 50)
-          .then(posts => ({ platform: 'youtube', posts, success: true }))
-          .catch(error => ({ platform: 'youtube', error: error.message, success: false }))
+          .then(posts => {
+            logger.info(`✅ YouTube search completed: ${posts.length} posts`);
+            return { platform: 'youtube', posts, success: true };
+          })
+          .catch(error => {
+            logger.error(`❌ YouTube search failed: ${error.message}`);
+            return { platform: 'youtube', error: error.message, success: false };
+          })
       );
     }
 

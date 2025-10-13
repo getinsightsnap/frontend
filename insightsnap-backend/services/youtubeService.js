@@ -18,12 +18,14 @@ class YouTubeService {
     const startTime = Date.now();
     
     if (!this.apiKey) {
-      logger.warn('YouTube API key not configured');
+      logger.error('❌ YouTube API key not configured! Add YOUTUBE_API_KEY to environment variables.');
+      logger.error('Current API key value:', this.apiKey ? 'Present' : 'Missing');
       return [];
     }
 
     try {
       logger.info(`🔍 Searching YouTube for: "${query}" (timeFilter: ${timeFilter}, language: ${language})`);
+      logger.debug(`YouTube API Key present: ${!!this.apiKey}, Length: ${this.apiKey?.length || 0}`);
 
       // Convert timeFilter to YouTube's publishedAfter format
       const publishedAfter = this.calculatePublishedAfter(timeFilter);
