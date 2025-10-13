@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { SearchService, SearchResponse } from '../services/searchService';
 import { SearchParams, AnalyzedResults, SocialPost } from '../services/apiConfig';
+import { SearchHistoryService } from '../services/searchHistoryService';
 
 interface ResearchDashboardProps {
   onHome: () => void;
@@ -216,7 +217,10 @@ const ResearchDashboard: React.FC<ResearchDashboardProps> = ({
 
       console.log('🔍 Performing fresh search with params:', searchParams);
       
+      const searchStartTime = Date.now();
       const searchResponse: SearchResponse = await SearchService.performSearch(searchParams, { userTier });
+      const searchDuration = Date.now() - searchStartTime;
+      
       const searchResults = searchResponse.results;
       const noResultsMessage = searchResponse.metadata?.noResultsMessage;
       
@@ -224,6 +228,27 @@ const ResearchDashboard: React.FC<ResearchDashboardProps> = ({
       console.log('💬 No results message:', noResultsMessage);
       
       setResults(searchResults);
+      
+      // Track search in database
+      await SearchHistoryService.trackSearch({
+        user_id: user?.id,
+        search_query: searchQuery.trim(),
+        platforms: selectedPlatforms,
+        language: selectedLanguage,
+        time_filter: timeFilter,
+        user_tier: userTier,
+        total_results: (searchResults.painPoints?.length || 0) + 
+                      (searchResults.trendingIdeas?.length || 0) + 
+                      (searchResults.contentIdeas?.length || 0),
+        pain_points_count: searchResults.painPoints?.length || 0,
+        trending_ideas_count: searchResults.trendingIdeas?.length || 0,
+        content_ideas_count: searchResults.contentIdeas?.length || 0,
+        user_email: user?.email,
+        is_authenticated: !!user,
+        search_duration_ms: searchDuration,
+        platforms_succeeded: searchResponse.metadata?.platforms_succeeded || selectedPlatforms,
+        platforms_failed: searchResponse.metadata?.platforms_failed || []
+      });
       
       // Increment search count
       onSearchPerformed();
