@@ -497,12 +497,17 @@ const ResearchDashboard: React.FC<ResearchDashboardProps> = ({
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 What insights are you looking for?
               </label>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
+                <p className="text-sm text-blue-800">
+                  <strong>💡 Tip:</strong> Search with <strong>one keyword at a time</strong> for best results (e.g., "AI marketing" instead of "AI marketing tools for social media")
+                </p>
+              </div>
               <div className="relative">
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="e.g., content creation, social media marketing, productivity tips..."
+                  placeholder="e.g., AI marketing, content creation, productivity tips..."
                   className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
                 />
