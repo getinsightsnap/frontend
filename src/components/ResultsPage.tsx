@@ -67,9 +67,9 @@ const ResultsPage: React.FC<ResultsPageProps> = ({
 
   const userTier = user?.subscription_tier || 'free';
   const tierLimits = {
-    free: 3,
-    standard: 5,
-    pro: 10
+    free: 9,      // 3 per platform × 3 platforms
+    standard: 15, // 5 per platform × 3 platforms
+    pro: 30       // 10 per platform × 3 platforms
   };
 
   const handleGenerateScript = (category: 'painPoints' | 'trendingIdeas' | 'contentIdeas', posts: SocialPost[]) => {

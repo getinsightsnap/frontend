@@ -61,7 +61,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin, onSign
         "3 AI script generations (lifetime)",
         "Real-time insights",
         "3 exports to CSV/PDF per month",
-        "3 results per category",
+        "9 results per category (3 per platform)",
         "Community support"
       ],
       buttonText: "Get Started",
@@ -77,7 +77,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin, onSign
         "50 searches per day",
         "25 AI script generations per day",
         "Time period filtering",
-        "5 results per category",
+        "15 results per category (5 per platform)",
         "30 exports to CSV/PDF per month",
         "Email support"
       ],
@@ -94,7 +94,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin, onSign
         "Unlimited searches",
         "Unlimited AI script generations",
         "Advanced time filtering",
-        "10 results per category",
+        "30 results per category (10 per platform)",
         "Auto-translation",
         "Priority support",
         "Trend alerts"

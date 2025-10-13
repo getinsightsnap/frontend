@@ -154,33 +154,54 @@ export class SearchService {
 
   /**
    * Apply tier-based result filtering
-   * Free: 3 results per category (mixed platforms)
-   * Standard: 5 results per category (mixed platforms)
-   * Pro: 10 results per category (ideally distributed across platforms)
+   * Distributes results per platform for balanced representation
+   * Free: 3 from each platform = 9 total per category
+   * Standard: 5 from each platform = 15 total per category
+   * Pro: 10 from each platform = 30 total per category
    */
   private static applyTierFiltering(results: AnalyzedResults, userTier: string): AnalyzedResults {
-    const limits = {
-      free: 3,
-      standard: 5,
-      pro: 10  // Changed from 999 to 10 for better UX
+    const limitsPerPlatform = {
+      free: 3,      // 3 per platform = 9 total
+      standard: 5,  // 5 per platform = 15 total
+      pro: 10       // 10 per platform = 30 total
     };
 
-    const limit = limits[userTier as keyof typeof limits] || limits.free;
+    const limitPerPlatform = limitsPerPlatform[userTier as keyof typeof limitsPerPlatform] || limitsPerPlatform.free;
 
     return {
-      painPoints: results.painPoints.slice(0, limit),
-      trendingIdeas: results.trendingIdeas.slice(0, limit),
-      contentIdeas: results.contentIdeas.slice(0, limit)
+      painPoints: this.filterByPlatform(results.painPoints, limitPerPlatform),
+      trendingIdeas: this.filterByPlatform(results.trendingIdeas, limitPerPlatform),
+      contentIdeas: this.filterByPlatform(results.contentIdeas, limitPerPlatform)
     };
+  }
+
+  /**
+   * Filter results to get N results from each platform
+   */
+  private static filterByPlatform(posts: any[], limitPerPlatform: number): any[] {
+    const platforms = ['reddit', 'x', 'youtube'];
+    const filtered: any[] = [];
+
+    // Get N posts from each platform
+    platforms.forEach(platform => {
+      const platformPosts = posts.filter(post => post.platform === platform);
+      filtered.push(...platformPosts.slice(0, limitPerPlatform));
+    });
+
+    return filtered;
   }
 
   /**
    * Get tier limits for UI display
    */
   static getTierLimits(userTier: string) {
+    // Results are per platform, so multiply by 3 for total
+    const perPlatform = userTier === 'free' ? 3 : userTier === 'standard' ? 5 : 10;
+    const totalPerCategory = perPlatform * 3; // 3 platforms
+    
     return {
       maxSearches: userTier === 'free' ? 5 : userTier === 'standard' ? 50 : 999999,
-      resultsPerCategory: userTier === 'free' ? 3 : userTier === 'standard' ? 5 : 10  // Pro users get 10 results per category
+      resultsPerCategory: totalPerCategory  // Free: 9, Standard: 15, Pro: 30
     };
   }
 }
