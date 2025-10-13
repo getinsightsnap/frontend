@@ -182,12 +182,16 @@ export class SearchService {
     const platforms = ['reddit', 'x', 'youtube'];
     const filtered: any[] = [];
 
+    console.log(`🔧 Filtering ${posts.length} posts, ${limitPerPlatform} per platform`);
+
     // Get N posts from each platform
     platforms.forEach(platform => {
       const platformPosts = posts.filter(post => post.platform === platform);
+      console.log(`  ${platform}: ${platformPosts.length} available, taking ${Math.min(platformPosts.length, limitPerPlatform)}`);
       filtered.push(...platformPosts.slice(0, limitPerPlatform));
     });
 
+    console.log(`✅ Filtered result: ${filtered.length} total posts`);
     return filtered;
   }
 
