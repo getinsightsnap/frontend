@@ -103,7 +103,7 @@ const ResearchDashboard: React.FC<ResearchDashboardProps> = ({
   const platforms = [
     { id: 'reddit', name: 'Reddit', icon: '🔴', available: true },
     { id: 'x', name: 'X (Twitter)', icon: '🐦', available: true },
-    { id: 'youtube', name: 'YouTube', icon: '📺', available: false }
+    { id: 'youtube', name: 'YouTube', icon: '📺', available: true }
   ];
 
   // Keyboard layouts for different languages
