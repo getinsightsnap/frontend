@@ -220,6 +220,9 @@ const ResearchDashboard: React.FC<ResearchDashboardProps> = ({
       const searchResults = searchResponse.results;
       const noResultsMessage = searchResponse.metadata?.noResultsMessage;
       
+      console.log('📨 Search response metadata:', searchResponse.metadata);
+      console.log('💬 No results message:', noResultsMessage);
+      
       setResults(searchResults);
       
       // Increment search count
@@ -228,12 +231,8 @@ const ResearchDashboard: React.FC<ResearchDashboardProps> = ({
       // Call the callback to show results with noResultsMessage
       onShowResults(searchResults, searchQuery, noResultsMessage);
       
-      if (!searchResults.painPoints.length && !searchResults.trendingIdeas.length && !searchResults.contentIdeas.length) {
-        // Only show generic error if no intelligent message is provided
-        if (!noResultsMessage) {
-          setError('No results found. Try adjusting your search terms or time filter.');
-        }
-      }
+      // Don't set error here - the intelligent message will be shown on ResultsPage
+      // The error state is only for actual errors, not for empty results
     } catch (err: any) {
       console.error('Search error:', err);
       
