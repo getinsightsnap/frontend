@@ -98,35 +98,40 @@ const AuthCallback: React.FC<AuthCallbackProps> = ({ onAuthComplete }) => {
         
         if (accessToken) {
           try {
-            // Decode the JWT token to get user info
-            console.log('🔍 Decoding JWT token...');
-            const payload = JSON.parse(atob(accessToken.split('.')[1]));
-            console.log('✅ Extracted user info from token:', payload);
+            // Instead of manually decoding JWT, wait for Supabase to process the token
+            console.log('🔍 Access token found, waiting for Supabase to process...');
+            await new Promise(resolve => setTimeout(resolve, 1000));
             
-            const userData = {
-              id: payload.sub,
-              name: payload.user_metadata?.name || payload.email?.split('@')[0] || 'User',
-              email: payload.email || '',
-              subscription_tier: 'free' as const,
-              search_count: 0
-            };
+            // Get session data from Supabase (safer than manual JWT decoding)
+            const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
             
-            console.log('✅ Using extracted user data:', userData);
-            
-            // Send admin notification for Google signup (don't block auth flow)
-            NotificationService.notifyNewSignup({
-              email: userData.email,
-              name: userData.name,
-              subscription_tier: 'free',
-              signup_method: 'google'
-            }).catch(err => console.error('Failed to send signup notification:', err));
-            
-            console.log('🚀 Calling onAuthComplete...');
-            onAuthComplete(userData);
-            return;
+            if (sessionData?.session?.user && !sessionError) {
+              const user = sessionData.session.user;
+              const userData = {
+                id: user.id,
+                name: user.user_metadata?.name || user.email?.split('@')[0] || 'User',
+                email: user.email || '',
+                subscription_tier: user.user_metadata?.subscription_tier || 'free' as const,
+                search_count: 0
+              };
+              
+              console.log('✅ User data extracted via Supabase session:', userData);
+              
+              // Send admin notification for Google signup (don't block auth flow)
+              NotificationService.notifyNewSignup({
+                email: userData.email,
+                name: userData.name,
+                subscription_tier: 'free',
+                signup_method: 'google'
+              }).catch(err => console.error('Failed to send signup notification:', err));
+              
+              console.log('🚀 Calling onAuthComplete...');
+              onAuthComplete(userData);
+              return;
+            }
           } catch (tokenError) {
-            console.error('Failed to extract user info from token:', tokenError);
-            console.error('Token parts:', accessToken.split('.'));
+            console.error('Failed to get session from Supabase:', tokenError);
+            // Continue to fallback method
           }
         }
         
