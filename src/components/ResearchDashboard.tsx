@@ -190,8 +190,15 @@ const ResearchDashboard: React.FC<ResearchDashboardProps> = ({
       return;
     }
 
+    // Clear any cached results from sessionStorage before new search
+    // This ensures fresh results even for repeated searches with same keyword
+    sessionStorage.removeItem('currentResults');
+    sessionStorage.removeItem('currentSearchQuery');
+    console.log('🧹 Cleared cached results before new search');
+
     setIsLoading(true);
     setError(null);
+    setResults(null); // Clear previous results immediately
 
     try {
       const searchParams: SearchParams = {
@@ -201,7 +208,7 @@ const ResearchDashboard: React.FC<ResearchDashboardProps> = ({
         platforms: selectedPlatforms
       };
 
-      console.log('🔍 Performing search with params:', searchParams);
+      console.log('🔍 Performing fresh search with params:', searchParams);
       
       const searchResults = await SearchService.performSearch(searchParams, { userTier });
       setResults(searchResults);
