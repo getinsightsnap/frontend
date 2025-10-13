@@ -20,6 +20,13 @@ import ScriptGenerationModal from './ScriptGenerationModal';
 interface ResultsPageProps {
   results: AnalyzedResults;
   searchQuery: string;
+  noResultsMessage?: {
+    title: string;
+    message: string;
+    reasons: string[];
+    suggestions: string[];
+    tip: string;
+  };
   onBack: () => void;
   onHome: () => void;
   onContact: () => void;
@@ -41,6 +48,7 @@ interface ResultsPageProps {
 const ResultsPage: React.FC<ResultsPageProps> = ({
   results,
   searchQuery,
+  noResultsMessage,
   onBack,
   onHome,
   onContact,
@@ -322,6 +330,53 @@ const ResultsPage: React.FC<ResultsPageProps> = ({
             AI-powered analysis from social media discussions
           </p>
         </div>
+
+        {/* No Results Message */}
+        {noResultsMessage && (
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-8">
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0">
+                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                  <Lightbulb className="w-5 h-5 text-blue-600" />
+                </div>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-blue-900 mb-2">
+                  {noResultsMessage.title}
+                </h3>
+                <p className="text-blue-800 mb-4">
+                  {noResultsMessage.message}
+                </p>
+                
+                <div className="space-y-3">
+                  <div>
+                    <h4 className="font-medium text-blue-900 mb-2">Possible reasons:</h4>
+                    <ul className="list-disc list-inside space-y-1 text-blue-800 text-sm">
+                      {noResultsMessage.reasons.map((reason, index) => (
+                        <li key={index}>{reason}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-medium text-blue-900 mb-2">Suggestions:</h4>
+                    <ul className="list-disc list-inside space-y-1 text-blue-800 text-sm">
+                      {noResultsMessage.suggestions.map((suggestion, index) => (
+                        <li key={index}>{suggestion}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  
+                  <div className="bg-blue-100 rounded-lg p-3 mt-4">
+                    <p className="text-blue-800 text-sm">
+                      <strong>💡 Tip:</strong> {noResultsMessage.tip}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Results Grid - Column Layout */}
         <div className="space-y-8 mb-8">

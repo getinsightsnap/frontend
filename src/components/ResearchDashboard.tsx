@@ -20,7 +20,7 @@ import {
   Loader,
   Circle
 } from 'lucide-react';
-import { SearchService } from '../services/searchService';
+import { SearchService, SearchResponse } from '../services/searchService';
 import { SearchParams, AnalyzedResults, SocialPost } from '../services/apiConfig';
 
 interface ResearchDashboardProps {
@@ -42,7 +42,13 @@ interface ResearchDashboardProps {
   onTermsAndConditions: () => void;
   onSearchPerformed: () => void;
   onSignOut: () => void;
-  onShowResults: (results: AnalyzedResults, query: string) => void;
+  onShowResults: (results: AnalyzedResults, query: string, noResultsMessage?: {
+    title: string;
+    message: string;
+    reasons: string[];
+    suggestions: string[];
+    tip: string;
+  }) => void;
   onPricing: () => void;
 }
 
@@ -210,17 +216,23 @@ const ResearchDashboard: React.FC<ResearchDashboardProps> = ({
 
       console.log('🔍 Performing fresh search with params:', searchParams);
       
-      const searchResults = await SearchService.performSearch(searchParams, { userTier });
+      const searchResponse: SearchResponse = await SearchService.performSearch(searchParams, { userTier });
+      const searchResults = searchResponse.results;
+      const noResultsMessage = searchResponse.metadata?.noResultsMessage;
+      
       setResults(searchResults);
       
       // Increment search count
       onSearchPerformed();
       
-      // Call the callback to show results
-      onShowResults(searchResults, searchQuery);
+      // Call the callback to show results with noResultsMessage
+      onShowResults(searchResults, searchQuery, noResultsMessage);
       
       if (!searchResults.painPoints.length && !searchResults.trendingIdeas.length && !searchResults.contentIdeas.length) {
-        setError('No results found. Try adjusting your search terms or time filter.');
+        // Only show generic error if no intelligent message is provided
+        if (!noResultsMessage) {
+          setError('No results found. Try adjusting your search terms or time filter.');
+        }
       }
     } catch (err: any) {
       console.error('Search error:', err);

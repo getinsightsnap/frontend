@@ -52,3 +52,11 @@ export interface AnalyzedResults {
   trendingIdeas: SocialPost[];
   contentIdeas: SocialPost[];
 }
+
+export interface NoResultsMessage {
+  title: string;
+  message: string;
+  reasons: string[];
+  suggestions: string[];
+  tip: string;
+}

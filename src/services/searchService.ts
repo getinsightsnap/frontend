@@ -1,14 +1,28 @@
-import { SearchParams, AnalyzedResults, SocialPost } from './apiConfig';
+import { SearchParams, AnalyzedResults } from './apiConfig';
 
 export interface SearchOptions {
   userTier?: 'free' | 'standard' | 'pro';
   userId?: string;
 }
 
+export interface SearchResponse {
+  results: AnalyzedResults;
+  metadata?: {
+    noResultsMessage?: {
+      title: string;
+      message: string;
+      reasons: string[];
+      suggestions: string[];
+      tip: string;
+    };
+    [key: string]: any;
+  };
+}
+
 export class SearchService {
   private static readonly API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001/api';
 
-  static async performSearch(params: SearchParams, options?: SearchOptions): Promise<AnalyzedResults> {
+  static async performSearch(params: SearchParams, options?: SearchOptions): Promise<SearchResponse> {
     try {
       console.log('🔍 Starting search with params:', params);
       console.log('🎯 User tier:', options?.userTier || 'free');
@@ -17,8 +31,7 @@ export class SearchService {
       const response = await fetch(`${this.API_BASE_URL}/search`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': options?.authToken ? `Bearer ${options.authToken}` : ''
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           query: params.query,
@@ -59,6 +72,11 @@ export class SearchService {
         console.warn('⚠️ Some platforms failed:', result.metadata.errors);
       }
 
+      // Check for intelligent no-results message
+      if (result.metadata.noResultsMessage) {
+        console.log('📝 No results message:', result.metadata.noResultsMessage.title);
+      }
+
       // Apply tier-based filtering
       const userTier = options?.userTier || 'free';
       const filteredResults = this.applyTierFiltering(result.data, userTier);
@@ -70,7 +88,11 @@ export class SearchService {
         tier: userTier
       });
 
-      return filteredResults;
+      // Return both results and metadata including noResultsMessage
+      return {
+        results: filteredResults,
+        metadata: result.metadata
+      };
 
     } catch (error) {
       console.error('❌ Search error:', error);

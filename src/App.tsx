@@ -102,6 +102,13 @@ function App() {
   // Results state - restore from sessionStorage if available
   const [currentResults, setCurrentResults] = useState<AnalyzedResults | null>(getStoredResults());
   const [currentSearchQuery, setCurrentSearchQuery] = useState<string>(getStoredQuery());
+  const [currentNoResultsMessage, setCurrentNoResultsMessage] = useState<{
+    title: string;
+    message: string;
+    reasons: string[];
+    suggestions: string[];
+    tip: string;
+  } | null>(null);
   
 
   // Initialize app on mount
@@ -593,9 +600,16 @@ function App() {
     console.log('📊 Signup modal tracked');
   };
 
-  const handleSearchResults = (results: AnalyzedResults, query: string) => {
+  const handleSearchResults = (results: AnalyzedResults, query: string, noResultsMessage?: {
+    title: string;
+    message: string;
+    reasons: string[];
+    suggestions: string[];
+    tip: string;
+  }) => {
     setCurrentResults(results);
     setCurrentSearchQuery(query);
+    setCurrentNoResultsMessage(noResultsMessage || null);
     navigateTo('results');
     
     // Track successful search
@@ -875,6 +889,7 @@ function App() {
           <ResultsPage
             searchQuery={currentSearchQuery}
             results={currentResults}
+            noResultsMessage={currentNoResultsMessage || undefined}
             onBack={handleGoBack}
             onHome={handleGoHome}
             onContact={handleContact}
