@@ -288,34 +288,24 @@ Only include the JSON response, no other text.`;
       };
     }).filter(Boolean); // Remove nulls (promoted/irrelevant posts)
 
-    // Sort by score and categorize - distribute posts more evenly
+    // Sort by score and categorize - distribute posts evenly across categories
     scoredPosts.forEach(scored => {
       const { post, painScore, trendingScore, contentScore, isAccelerating } = scored;
       
-      // Determine highest score
+      // Determine highest score (NO minimum threshold - categorize all posts)
       const maxScore = Math.max(painScore, trendingScore, contentScore);
       
-      // Categorize based on highest score (with minimum threshold of 0.5 to be categorized)
-      if (maxScore === painScore && painScore >= 0.5) {
+      // Categorize based on highest score
+      if (maxScore === painScore) {
         painPoints.push(post);
         logger.debug(`📍 Pain point: "${post.content.substring(0, 40)}..." (score: ${painScore.toFixed(2)})`);
-      } else if (maxScore === trendingScore && trendingScore >= 0.5) {
+      } else if (maxScore === trendingScore) {
         trendingIdeas.push(post);
         if (isAccelerating) {
           logger.debug(`🚀 Accelerating trend: "${post.content.substring(0, 40)}..." (score: ${trendingScore.toFixed(2)}, engagement: ${scored.engagement})`);
         }
-      } else if (maxScore === contentScore && contentScore >= 0.5) {
-        contentIdeas.push(post);
       } else {
-        // If all scores are low, distribute based on slight preference
-        // This ensures posts still get categorized even with low keyword matches
-        if (painScore >= trendingScore && painScore >= contentScore) {
-          painPoints.push(post);
-        } else if (trendingScore >= contentScore) {
-          trendingIdeas.push(post);
-        } else {
-          contentIdeas.push(post);
-        }
+        contentIdeas.push(post);
       }
     });
 
@@ -333,6 +323,14 @@ Only include the JSON response, no other text.`;
 
     logger.info(`✅ Enhanced categorization: ${painPoints.length} pain points, ${trendingIdeas.length} trending (${trendingIdeas.filter(p => (p.engagement || 0) > avgEngagement * 2).length} accelerating), ${contentIdeas.length} content ideas`);
     logger.info(`📊 Categorization breakdown: ${posts.length} total → ${totalRelevant} categorized, ${excludedPromoted} promoted, ${excludedIrrelevant} irrelevant`);
+    
+    // DEBUG: Log platform distribution
+    const platformBreakdown = {
+      painPoints: this.getPlatformCounts(painPoints),
+      trendingIdeas: this.getPlatformCounts(trendingIdeas),
+      contentIdeas: this.getPlatformCounts(contentIdeas)
+    };
+    logger.info(`📊 Platform distribution:`, platformBreakdown);
     
     // DEBUG: Log if categories are empty
     if (painPoints.length === 0) {
@@ -353,6 +351,16 @@ Only include the JSON response, no other text.`;
         excludedIrrelevantPosts: excludedIrrelevant
       }
     };
+  }
+
+  static getPlatformCounts(posts) {
+    const counts = { reddit: 0, x: 0, youtube: 0 };
+    posts.forEach(post => {
+      if (counts.hasOwnProperty(post.platform)) {
+        counts[post.platform]++;
+      }
+    });
+    return counts;
   }
 
   static async generateContentIdeas(query, posts) {
