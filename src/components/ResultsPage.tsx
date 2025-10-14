@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { AnalyzedResults, SocialPost } from '../services/apiConfig';
 import ScriptGenerationModal from './ScriptGenerationModal';
+import RelevanceRating from './RelevanceRating';
 import { MetaPixelService } from '../services/metaPixelService';
 
 interface ResultsPageProps {
@@ -174,6 +175,25 @@ const ResultsPage: React.FC<ResultsPageProps> = ({
                         </button>
                       )}
                     </div>
+                    
+                    {/* Relevance Rating Component */}
+                    <div className="mb-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs font-medium text-gray-700 mb-1">Rate this result's relevance:</p>
+                          <RelevanceRating
+                            postId={result.id}
+                            platform={result.platform}
+                            searchQuery={searchQuery}
+                            userId={user?.id}
+                            onRatingSubmit={(rating) => {
+                              console.log(`Rated ${result.id} as ${rating}/5 for query: ${searchQuery}`);
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-4 text-xs text-gray-500">
                         <span className="font-medium">{result.source}</span>
