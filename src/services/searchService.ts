@@ -153,18 +153,19 @@ export class SearchService {
    * Get tier limits for UI display
    */
   static getTierLimits(userTier: string) {
-    // Results are now handled by backend tier limits
+    // Results are per platform within each category
     const tierLimits = {
-      free: { painPoints: 3, trendingIdeas: 3, contentIdeas: 3 },
-      standard: { painPoints: 10, trendingIdeas: 10, contentIdeas: 10 },
-      pro: { painPoints: 20, trendingIdeas: 20, contentIdeas: 20 }
+      free: { perPlatform: 3, totalPerCategory: 9 },      // 3 per platform × 3 platforms = 9 per category
+      standard: { perPlatform: 5, totalPerCategory: 15 }, // 5 per platform × 3 platforms = 15 per category  
+      pro: { perPlatform: 10, totalPerCategory: 30 }      // 10 per platform × 3 platforms = 30 per category
     };
     
     const limits = tierLimits[userTier as keyof typeof tierLimits] || tierLimits.free;
     
     return {
       maxSearches: userTier === 'free' ? 5 : userTier === 'standard' ? 50 : 999999,
-      resultsPerCategory: limits.painPoints, // Show pain points limit as example
+      resultsPerCategory: limits.totalPerCategory,
+      perPlatform: limits.perPlatform,
       tierLimits: limits
     };
   }
