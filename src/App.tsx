@@ -10,6 +10,7 @@ import ContactPage from './components/ContactPage';
 import PrivacyPolicy from './components/PrivacyPolicy';
 import TermsAndConditions from './components/TermsAndConditions';
 import BlogPage from './components/BlogPage';
+import BlogDetailPage from './components/BlogDetailPage';
 import { AuthService } from './services/authService';
 import { supabase } from './lib/supabase';
 import { AnalyzedResults } from './services/apiConfig';
@@ -32,15 +33,21 @@ function App() {
     if (['dashboard', 'results', 'contact', 'privacy', 'terms', 'blog'].includes(view)) {
       return view as 'dashboard' | 'results' | 'contact' | 'privacy' | 'terms' | 'blog';
     }
+    // Check if it's a blog post (starts with 'blog/')
+    if (path.startsWith('/blog/')) {
+      const slug = path.replace('/blog/', '');
+      setCurrentBlogSlug(slug);
+      return 'blog-post';
+    }
     return 'landing';
   };
 
   // Check if we have a stored view in sessionStorage first
   const getStoredOrInitialView = () => {
     const storedView = sessionStorage.getItem('currentView');
-    if (storedView && ['landing', 'dashboard', 'results', 'contact', 'privacy', 'terms', 'blog', 'auth-callback'].includes(storedView)) {
+    if (storedView && ['landing', 'dashboard', 'results', 'contact', 'privacy', 'terms', 'blog', 'blog-post', 'auth-callback'].includes(storedView)) {
       console.log('✅ Restored view from session storage:', storedView);
-      return storedView as 'landing' | 'dashboard' | 'results' | 'contact' | 'privacy' | 'terms' | 'blog' | 'auth-callback';
+      return storedView as 'landing' | 'dashboard' | 'results' | 'contact' | 'privacy' | 'terms' | 'blog' | 'blog-post' | 'auth-callback';
     }
     return getInitialView();
   };
@@ -87,7 +94,8 @@ function App() {
     return null;
   };
 
-  const [currentView, setCurrentView] = useState<'landing' | 'dashboard' | 'results' | 'contact' | 'privacy' | 'terms' | 'blog' | 'auth-callback'>(getStoredOrInitialView());
+  const [currentView, setCurrentView] = useState<'landing' | 'dashboard' | 'results' | 'contact' | 'privacy' | 'terms' | 'blog' | 'blog-post' | 'auth-callback'>(getStoredOrInitialView());
+  const [currentBlogSlug, setCurrentBlogSlug] = useState<string>('');
   const [navigationHistory, setNavigationHistory] = useState<string[]>([getStoredOrInitialView()]);
   const [user, setUser] = useState<User | null>(getStoredUser());
   const [authModalOpen, setAuthModalOpen] = useState(false);
@@ -431,6 +439,16 @@ function App() {
   useEffect(() => {
     const handlePopState = () => {
       const path = window.location.pathname;
+      
+      // Handle blog post URLs
+      if (path.startsWith('/blog/')) {
+        const slug = path.replace('/blog/', '');
+        setCurrentBlogSlug(slug);
+        setCurrentView('blog-post');
+        setNavigationHistory(prev => [...prev, 'blog-post']);
+        return;
+      }
+      
       const view = path === '/' ? 'landing' : path.slice(1) as 'dashboard' | 'results' | 'contact' | 'privacy' | 'terms' | 'blog';
       
       if (['landing', 'dashboard', 'results', 'contact', 'privacy', 'terms', 'blog'].includes(view)) {
@@ -546,6 +564,16 @@ function App() {
   const handleBlog = () => {
     navigateTo('blog');
     console.log('📊 Blog page tracked');
+  };
+
+  const handleBlogPost = (slug: string) => {
+    setCurrentBlogSlug(slug);
+    setCurrentView('blog-post');
+    setNavigationHistory(prev => [...prev, 'blog-post']);
+    
+    // Update URL for blog post
+    window.history.pushState({ view: 'blog-post', slug }, '', `/blog/${slug}`);
+    console.log('📊 Blog post navigation tracked:', slug);
   };
 
   const handlePricing = () => {
@@ -958,6 +986,21 @@ function App() {
         />
       ) : currentView === 'blog' ? (
         <BlogPage
+          onHome={handleGoHome}
+          onContact={handleContact}
+          onBlog={handleBlog}
+          onPrivacyPolicy={handlePrivacyPolicy}
+          onTermsAndConditions={handleTermsAndConditions}
+          onLogin={handleLogin}
+          onSignUp={handleSignUp}
+          onBlogPost={handleBlogPost}
+          user={user}
+          onSignOut={handleSignOut}
+        />
+      ) : currentView === 'blog-post' ? (
+        <BlogDetailPage
+          slug={currentBlogSlug}
+          onBack={() => navigateTo('blog')}
           onHome={handleGoHome}
           onContact={handleContact}
           onBlog={handleBlog}

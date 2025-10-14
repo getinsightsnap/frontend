@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Calendar, Clock, User, Tag, Twitter, Youtube, Instagram, Facebook, Mail } from 'lucide-react';
+import { Calendar, Clock, User, Tag, ArrowLeft, Twitter, Youtube, Instagram, Facebook, Mail } from 'lucide-react';
 import { BlogService, BlogPost } from '../services/blogService';
 import { MetaPixelService } from '../services/metaPixelService';
 
-interface BlogPageProps {
+interface BlogDetailPageProps {
+  slug: string;
+  onBack: () => void;
   onHome: () => void;
   onContact: () => void;
   onBlog: () => void;
@@ -11,7 +13,6 @@ interface BlogPageProps {
   onTermsAndConditions: () => void;
   onLogin: () => void;
   onSignUp: () => void;
-  onBlogPost: (slug: string) => void;
   user: { 
     id: string;
     name: string; 
@@ -22,25 +23,37 @@ interface BlogPageProps {
   onSignOut: () => void;
 }
 
-const BlogPage: React.FC<BlogPageProps> = ({ onHome, onContact, onBlog, onPrivacyPolicy, onTermsAndConditions, onLogin, onSignUp, onBlogPost, user, onSignOut }) => {
-  const [posts, setPosts] = useState<BlogPost[]>([]);
+const BlogDetailPage: React.FC<BlogDetailPageProps> = ({ 
+  slug, 
+  onBack, 
+  onHome, 
+  onContact, 
+  onBlog, 
+  onPrivacyPolicy, 
+  onTermsAndConditions, 
+  onLogin, 
+  onSignUp, 
+  user, 
+  onSignOut 
+}) => {
+  const [post, setPost] = useState<BlogPost | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadPosts();
-    MetaPixelService.trackPageView('blog');
-  }, []);
+    loadPost();
+    MetaPixelService.trackPageView(`blog/${slug}`);
+  }, [slug]);
 
-  const loadPosts = async () => {
+  const loadPost = async () => {
     try {
       setIsLoading(true);
-      const { data, error } = await BlogService.getPosts(true); // Only get published posts
+      const { data, error } = await BlogService.getPostBySlug(slug);
       if (error) throw error;
-      setPosts(data || []);
+      setPost(data);
     } catch (err) {
-      console.error('Error loading posts:', err);
-      setError('Failed to load blog posts');
+      console.error('Error loading post:', err);
+      setError('Failed to load blog post');
     } finally {
       setIsLoading(false);
     }
@@ -59,7 +72,30 @@ const BlogPage: React.FC<BlogPageProps> = ({ onHome, onContact, onBlog, onPrivac
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading blog posts...</p>
+          <p className="text-gray-600">Loading blog post...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !post) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-red-500 mb-4">
+            <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h3 className="text-2xl font-bold text-gray-900 mb-2">Post Not Found</h3>
+          <p className="text-gray-600 mb-6">The blog post you're looking for doesn't exist or has been removed.</p>
+          <button 
+            onClick={onBack}
+            className="inline-flex items-center px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+          >
+            <ArrowLeft className="w-5 h-5 mr-2" />
+            Back to Blog
+          </button>
         </div>
       </div>
     );
@@ -165,120 +201,86 @@ const BlogPage: React.FC<BlogPageProps> = ({ onHome, onContact, onBlog, onPrivac
         </div>
       </header>
 
-      {/* Page Header */}
-      <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-4xl font-bold mb-4">InsightSnap Blog</h1>
-          <p className="text-lg text-indigo-100 max-w-2xl mx-auto">
-            Insights, tips, and strategies for understanding your audience through social media research
-          </p>
+      {/* Back Button */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <button 
+            onClick={onBack}
+            className="inline-flex items-center text-indigo-600 hover:text-indigo-800 font-medium transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5 mr-2" />
+            Back to Blog
+          </button>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Error Message */}
-        {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-red-800">{error}</p>
-          </div>
-        )}
-
-        {/* Posts List */}
-        <div className="max-w-4xl mx-auto space-y-8">
-          {posts.length === 0 ? (
-            <div className="text-center py-16 bg-white rounded-xl shadow-sm border border-gray-200">
-              <div className="text-gray-400 mb-4">
-                <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
-                </svg>
-              </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">No blog posts yet</h3>
-              <p className="text-gray-600 text-lg">Check back soon for insightful articles and updates!</p>
+      {/* Article Content */}
+      <article className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          {/* Featured Image */}
+          {post.featured_image && (
+            <div className="w-full h-64 overflow-hidden">
+              <img 
+                src={post.featured_image} 
+                alt={post.title}
+                className="w-full h-full object-cover"
+              />
             </div>
-          ) : (
-            posts.map((post) => (
-              <article key={post.id} className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow">
-                {/* Featured Image */}
-                {post.featured_image && (
-                  <div className="w-full h-64 overflow-hidden">
-                    <img 
-                      src={post.featured_image} 
-                      alt={post.title}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                )}
-                
-                <div className="p-8">
-                  {/* Post Header */}
-                  <h2 
-                    className="text-3xl font-bold text-gray-900 mb-4 hover:text-indigo-600 transition-colors"
-                    dangerouslySetInnerHTML={{ __html: post.title }}
-                  />
-                  
-                  {/* Excerpt */}
-                  <p className="text-gray-600 text-lg mb-6 leading-relaxed">{post.excerpt}</p>
-                  
-                  {/* Meta Info */}
-                  <div className="flex items-center justify-between mb-6 pb-6 border-b border-gray-200">
-                    <div className="flex items-center space-x-6 text-sm text-gray-500">
-                      <div className="flex items-center">
-                        <User className="w-4 h-4 mr-2 text-indigo-600" />
-                        <span className="font-medium text-gray-700">{post.author}</span>
-                      </div>
-                      <div className="flex items-center">
-                        <Calendar className="w-4 h-4 mr-2 text-indigo-600" />
-                        {formatDate(post.created_at)}
-                      </div>
-                      <div className="flex items-center">
-                        <Clock className="w-4 h-4 mr-2 text-indigo-600" />
-                        {post.read_time} min read
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Tags */}
-                  {post.tags.length > 0 && (
-                    <div className="flex items-center gap-2 mb-6">
-                      <Tag className="w-4 h-4 text-gray-400" />
-                      <div className="flex flex-wrap gap-2">
-                        {post.tags.map((tag, index) => (
-                          <span
-                            key={index}
-                            className="px-3 py-1 bg-indigo-50 text-indigo-700 text-sm rounded-full font-medium"
-                          >
-                            #{tag}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Content Preview */}
-                  <div 
-                    className="prose prose-lg max-w-none text-gray-700 mb-6"
-                    dangerouslySetInnerHTML={{ __html: post.content.substring(0, 300) + '...' }}
-                  />
-                  
-                  {/* Read More Button */}
-                  <button 
-                    onClick={() => onBlogPost(post.slug)}
-                    className="inline-flex items-center px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
-                  >
-                    Read Full Article
-                    <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                    </svg>
-                  </button>
-                </div>
-              </article>
-            ))
           )}
+          
+          <div className="p-8">
+            {/* Article Header */}
+            <h1 
+              className="text-4xl font-bold text-gray-900 mb-6"
+              dangerouslySetInnerHTML={{ __html: post.title }}
+            />
+            
+            {/* Meta Info */}
+            <div className="flex items-center justify-between mb-8 pb-6 border-b border-gray-200">
+              <div className="flex items-center space-x-6 text-sm text-gray-500">
+                <div className="flex items-center">
+                  <User className="w-4 h-4 mr-2 text-indigo-600" />
+                  <span className="font-medium text-gray-700">{post.author}</span>
+                </div>
+                <div className="flex items-center">
+                  <Calendar className="w-4 h-4 mr-2 text-indigo-600" />
+                  {formatDate(post.created_at)}
+                </div>
+                <div className="flex items-center">
+                  <Clock className="w-4 h-4 mr-2 text-indigo-600" />
+                  {post.read_time} min read
+                </div>
+              </div>
+            </div>
+
+            {/* Tags */}
+            {post.tags.length > 0 && (
+              <div className="flex items-center gap-2 mb-8">
+                <Tag className="w-4 h-4 text-gray-400" />
+                <div className="flex flex-wrap gap-2">
+                  {post.tags.map((tag, index) => (
+                    <span
+                      key={index}
+                      className="px-3 py-1 bg-indigo-50 text-indigo-700 text-sm rounded-full font-medium"
+                    >
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {/* Article Content */}
+            <div 
+              className="prose prose-lg max-w-none text-gray-700"
+              dangerouslySetInnerHTML={{ __html: post.content }}
+            />
+          </div>
         </div>
-      </div>
+      </article>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12">
+      <footer className="bg-gray-900 text-white py-12 mt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-4 gap-8">
             <div>
@@ -380,9 +382,8 @@ const BlogPage: React.FC<BlogPageProps> = ({ onHome, onContact, onBlog, onPrivac
           </div>
         </div>
       </footer>
-
     </div>
   );
 };
 
-export default BlogPage;
+export default BlogDetailPage;
