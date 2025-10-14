@@ -117,8 +117,17 @@ const ScriptGenerationModal: React.FC<ScriptGenerationModalProps> = ({
       };
 
       console.log('📝 Script request:', request);
-      const script = await ContentGenerationService.generateScript(request);
-      console.log('✅ Script generated:', script);
+      
+      // Try backend API first, fallback to frontend if needed
+      let script: GeneratedScript;
+      try {
+        script = await ContentGenerationService.generateScriptViaBackend(request);
+        console.log('✅ Script generated via backend:', script);
+      } catch (backendError) {
+        console.warn('⚠️ Backend script generation failed, using frontend fallback:', backendError);
+        script = await ContentGenerationService.generateScript(request);
+        console.log('✅ Script generated via frontend fallback:', script);
+      }
       
       setGeneratedScript(script);
 

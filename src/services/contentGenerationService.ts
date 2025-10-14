@@ -19,6 +19,8 @@ export interface GeneratedScript {
 }
 
 export class ContentGenerationService {
+  private static readonly API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001/api';
+
   private static async callPerplexityAPI(prompt: string, maxTokens: number = 2000): Promise<string> {
     try {
       if (!API_CONFIG.perplexity.apiKey) {
@@ -348,5 +350,38 @@ ${closing}`;
       hashtags: [`#${platform.toLowerCase()}`, '#community', '#insights'],
       estimatedDuration: request.length === 'short' ? '2-3 minutes' : request.length === 'medium' ? '5-7 minutes' : '10-15 minutes'
     };
+  }
+
+  // New method using backend API with enhanced Perplexity intelligence
+  static async generateScriptViaBackend(request: ScriptRequest): Promise<GeneratedScript> {
+    try {
+      console.log('🎬 Generating script via backend API...');
+      
+      const response = await fetch(`${this.API_BASE_URL}/scripts/generate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(request)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Script generation failed: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.message || 'Script generation failed');
+      }
+
+      console.log('✅ Script generated successfully via backend');
+      return result.data;
+
+    } catch (error) {
+      console.error('❌ Backend script generation error:', error);
+      throw error;
+    }
   }
 }
