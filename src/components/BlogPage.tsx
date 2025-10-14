@@ -25,6 +25,8 @@ const BlogPage: React.FC<BlogPageProps> = ({ onHome, onContact, onBlog, onPrivac
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedPost, setSelectedPost] = useState<BlogPost | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     loadPosts();
@@ -210,9 +212,10 @@ const BlogPage: React.FC<BlogPageProps> = ({ onHome, onContact, onBlog, onPrivac
                 
                 <div className="p-8">
                   {/* Post Header */}
-                  <h2 className="text-3xl font-bold text-gray-900 mb-4 hover:text-indigo-600 transition-colors">
-                    {post.title}
-                  </h2>
+                  <h2 
+                    className="text-3xl font-bold text-gray-900 mb-4 hover:text-indigo-600 transition-colors"
+                    dangerouslySetInnerHTML={{ __html: post.title }}
+                  />
                   
                   {/* Excerpt */}
                   <p className="text-gray-600 text-lg mb-6 leading-relaxed">{post.excerpt}</p>
@@ -253,12 +256,17 @@ const BlogPage: React.FC<BlogPageProps> = ({ onHome, onContact, onBlog, onPrivac
                   )}
                   
                   {/* Content Preview */}
-                  <div className="prose prose-lg max-w-none text-gray-700 mb-6">
-                    {post.content.substring(0, 300)}...
-                  </div>
+                  <div 
+                    className="prose prose-lg max-w-none text-gray-700 mb-6"
+                    dangerouslySetInnerHTML={{ __html: post.content.substring(0, 300) + '...' }}
+                  />
                   
                   {/* Read More Button */}
                   <button 
+                    onClick={() => {
+                      setSelectedPost(post);
+                      setIsModalOpen(true);
+                    }}
                     className="inline-flex items-center px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
                   >
                     Read Full Article
@@ -376,6 +384,73 @@ const BlogPage: React.FC<BlogPageProps> = ({ onHome, onContact, onBlog, onPrivac
           </div>
         </div>
       </footer>
+
+      {/* Blog Post Modal */}
+      {isModalOpen && selectedPost && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-6">
+              <div className="flex items-center justify-between">
+                <h2 
+                  className="text-2xl font-bold"
+                  dangerouslySetInnerHTML={{ __html: selectedPost.title }}
+                />
+                <button
+                  onClick={() => setIsModalOpen(false)}
+                  className="text-white hover:text-gray-200 transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div className="flex items-center space-x-6 mt-4 text-indigo-100">
+                <div className="flex items-center">
+                  <User className="w-4 h-4 mr-2" />
+                  <span className="font-medium">{selectedPost.author}</span>
+                </div>
+                <div className="flex items-center">
+                  <Calendar className="w-4 h-4 mr-2" />
+                  {formatDate(selectedPost.created_at)}
+                </div>
+                <div className="flex items-center">
+                  <Clock className="w-4 h-4 mr-2" />
+                  {selectedPost.read_time} min read
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-8 overflow-y-auto max-h-[calc(90vh-200px)]">
+              <div 
+                className="prose prose-lg max-w-none"
+                dangerouslySetInnerHTML={{ __html: selectedPost.content }}
+              />
+            </div>
+
+            {/* Modal Footer */}
+            <div className="bg-gray-50 px-8 py-4 flex justify-between items-center">
+              <div className="flex flex-wrap gap-2">
+                {selectedPost.tags.map((tag, index) => (
+                  <span
+                    key={index}
+                    className="px-3 py-1 bg-indigo-50 text-indigo-700 text-sm rounded-full font-medium"
+                  >
+                    #{tag}
+                  </span>
+                ))}
+              </div>
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
