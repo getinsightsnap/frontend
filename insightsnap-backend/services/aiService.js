@@ -19,31 +19,31 @@ class AIService {
       const apiKey = process.env.PERPLEXITY_API_KEY;
       
       if (!apiKey) {
-        logger.warn('Perplexity API key not configured, using enhanced categorization');
-        return this.enhancedCategorization(posts, query);
+        logger.warn('Perplexity API key not configured, using enhanced sentiment analysis');
+        return this.enhancedSentimentAnalysis(posts, query);
       }
 
-      // Use AI for categorization
-      logger.info(`🤖 Using AI categorization for ${posts.length} posts with query: "${query}"`);
-      return await this.aiCategorization(posts, query);
+      // Use AI for sentiment analysis
+      logger.info(`🤖 Using AI sentiment analysis for ${posts.length} posts with query: "${query}"`);
+      return await this.aiSentimentAnalysis(posts, query);
 
     } catch (error) {
-      logger.error('AI categorization error:', error);
-      logger.info('Falling back to enhanced categorization');
-      return this.enhancedCategorization(posts, query);
+      logger.error('AI sentiment analysis error:', error);
+      logger.info('Falling back to enhanced sentiment analysis');
+      return this.enhancedSentimentAnalysis(posts, query);
     }
   }
 
-  static async aiCategorization(posts, query) {
+  static async aiSentimentAnalysis(posts, query) {
     try {
       const maxPosts = Math.min(posts.length, 100);
-      logger.info(`🤖 AI categorizing ${maxPosts} posts using Perplexity AI...`);
+      logger.info(`🤖 AI analyzing sentiment of ${maxPosts} posts using Perplexity AI...`);
       
       // Calculate average engagement for context
       const totalEngagement = posts.reduce((sum, post) => sum + (post.engagement || 0), 0);
       const avgEngagement = posts.length > 0 ? totalEngagement / posts.length : 0;
 
-      // Prepare posts for AI analysis
+      // Prepare posts for AI analysis - mix all platforms together
       const postsText = posts.slice(0, maxPosts).map((post, index) => {
         const engagement = post.engagement || 0;
         const isHighEngagement = engagement > (avgEngagement * 2);
@@ -51,21 +51,22 @@ class AIService {
         return `${index + 1}. [${post.platform.toUpperCase()}] Posted ${post.timestamp} | Engagement: ${engagement} ${engagementIndicator}\n   ${post.content.substring(0, 200)}...`;
       }).join('\n\n');
 
-      const prompt = `You are an expert social media analyst. Analyze these posts related to "${query}" and categorize them into three groups.
+      const prompt = `You are an expert social media sentiment analyst. Analyze these posts related to "${query}" and categorize them by SENTIMENT and INTENT, not by platform.
 
-IMPORTANT: You MUST distribute posts across ALL THREE categories. Each category should have posts from different platforms (Reddit, X/Twitter, YouTube) when possible.
+IMPORTANT: Mix posts from ALL platforms (Reddit, X/Twitter, YouTube) in each category. Do NOT separate by platform.
 
-CATEGORIES:
-1. PAIN POINTS: Posts expressing problems, frustrations, challenges, or negative experiences
-2. TRENDING IDEAS: Posts about popular/viral discussions, news, or emerging trends (prioritize high engagement posts)
-3. CONTENT IDEAS: Posts offering solutions, tips, tutorials, or valuable insights
+CATEGORIES BY SENTIMENT/INTENT:
+1. PAIN POINTS: Posts expressing problems, frustrations, challenges, complaints, or negative experiences
+2. TRENDING IDEAS: Posts about popular/viral discussions, news, emerging trends, or high-engagement content
+3. CONTENT IDEAS: Posts offering solutions, tips, tutorials, educational content, or asking questions
 
 RULES:
 - Include posts that mention "${query}" or are related to it
-- Distribute posts evenly across all three categories
-- Try to include posts from Reddit, X, and YouTube in each category
+- DISTRIBUTE posts across ALL THREE categories (don't put everything in one category)
+- MIX platforms in each category - a category can have Reddit + X + YouTube posts together
 - Prioritize high engagement posts for trending ideas
 - Include posts asking questions as content ideas
+- Include complaints and frustrations as pain points
 - Be inclusive - include posts even if they only briefly mention the topic
 
 Posts to analyze (${maxPosts} total):
@@ -120,22 +121,22 @@ Example: {"painPoints": [1, 5, 8], "trendingIdeas": [2, 3, 7], "contentIdeas": [
         }
       };
 
-      logger.info(`✅ AI categorization complete: ${result.painPoints.length} pain points, ${result.trendingIdeas.length} trending ideas, ${result.contentIdeas.length} content ideas`);
+      logger.info(`✅ AI sentiment analysis complete: ${result.painPoints.length} pain points, ${result.trendingIdeas.length} trending ideas, ${result.contentIdeas.length} content ideas`);
       
-      // Ensure platform diversity and fill empty categories
-      return this.ensureBalancedResults(result, posts);
+      // Ensure all categories have results
+      return this.ensureAllCategoriesHaveResults(result, posts);
 
     } catch (error) {
-      logger.error('AI categorization error:', error);
+      logger.error('AI sentiment analysis error:', error);
       throw error;
     }
   }
 
-  static enhancedCategorization(posts, query) {
-    logger.info(`🔄 Using enhanced categorization for ${posts.length} posts with query: "${query}"`);
+  static enhancedSentimentAnalysis(posts, query) {
+    logger.info(`🔄 Using enhanced sentiment analysis for ${posts.length} posts with query: "${query}"`);
     
     if (!posts || !Array.isArray(posts)) {
-      logger.error('Invalid posts array in enhancedCategorization');
+      logger.error('Invalid posts array in enhancedSentimentAnalysis');
       return {
         painPoints: [],
         trendingIdeas: [],
@@ -144,27 +145,31 @@ Example: {"painPoints": [1, 5, 8], "trendingIdeas": [2, 3, 7], "contentIdeas": [
       };
     }
 
-    // Enhanced keyword sets with weights
+    // Enhanced sentiment keywords
     const painKeywords = [
       'problem', 'issue', 'frustrated', 'difficult', 'hard', 'struggle', 'hate', 'annoying', 'broken',
       'fail', 'worst', 'terrible', 'awful', 'sucks', 'disappointed', 'angry', 'upset', 'complaint',
       'bug', 'error', 'glitch', 'not working', 'broken', 'slow', 'expensive', 'overpriced',
       'confused', 'lost', 'stuck', 'can\'t', 'won\'t', 'doesn\'t work', 'help me', 'fix this',
-      'why is', 'how do i', 'trouble', 'issue with', 'having problems', 'struggling with'
+      'why is', 'how do i', 'trouble', 'issue with', 'having problems', 'struggling with',
+      'frustrating', 'annoying', 'hate', 'terrible', 'awful', 'worst', 'sucks', 'broken',
+      'doesn\'t work', 'not working', 'bug', 'error', 'glitch', 'slow', 'expensive'
     ];
 
     const trendingKeywords = [
       'trending', 'viral', 'popular', 'hot', 'new', 'latest', 'everyone', 'all over', 'everywhere',
       'breaking', 'just dropped', 'huge', 'massive', 'insane', 'crazy', 'amazing', 'incredible',
       'game changer', 'revolutionary', 'breakthrough', 'innovative', 'cutting edge', 'next level',
-      'blowing up', 'going viral', 'happening now', 'check this out', 'you need to see'
+      'blowing up', 'going viral', 'happening now', 'check this out', 'you need to see',
+      'love this', 'obsessed', 'addicted', 'can\'t stop', 'so good', 'perfect', 'excellent'
     ];
 
     const contentKeywords = [
       'how to', 'tutorial', 'learn', 'teach', 'explain', 'guide', 'want to know', 'help',
       'tips', 'tricks', 'advice', 'recommend', 'suggest', 'what is', 'where to', 'when to',
       'why', 'best way', 'step by step', 'beginner', 'advanced', 'pro tip', 'expert',
-      'should i', 'what do you think', 'opinions', 'experience', 'review'
+      'should i', 'what do you think', 'opinions', 'experience', 'review',
+      'anyone know', 'help me', 'how do', 'what\'s the best', 'recommendations'
     ];
 
     // Calculate average engagement
@@ -173,11 +178,11 @@ Example: {"painPoints": [1, 5, 8], "trendingIdeas": [2, 3, 7], "contentIdeas": [
     
     logger.info(`📊 Average engagement: ${avgEngagement.toFixed(2)}`);
 
-    // Score and categorize posts
+    // Score posts by sentiment
     const scoredPosts = posts.map(post => {
       const content = post.content.toLowerCase();
       
-      // Calculate scores for each category
+      // Calculate sentiment scores
       const painScore = painKeywords.reduce((score, keyword) => 
         score + (content.includes(keyword) ? 1 : 0), 0
       );
@@ -209,7 +214,7 @@ Example: {"painPoints": [1, 5, 8], "trendingIdeas": [2, 3, 7], "contentIdeas": [
       };
     });
 
-    // Categorize posts based on highest score
+    // Categorize posts by highest sentiment score
     const painPoints = [];
     const trendingIdeas = [];
     const contentIdeas = [];
@@ -244,62 +249,41 @@ Example: {"painPoints": [1, 5, 8], "trendingIdeas": [2, 3, 7], "contentIdeas": [
       }
     };
 
-    logger.info(`✅ Enhanced categorization: ${result.painPoints.length} pain points, ${result.trendingIdeas.length} trending ideas, ${result.contentIdeas.length} content ideas`);
+    logger.info(`✅ Enhanced sentiment analysis: ${result.painPoints.length} pain points, ${result.trendingIdeas.length} trending ideas, ${result.contentIdeas.length} content ideas`);
     
-    // Ensure balanced results with platform diversity
-    return this.ensureBalancedResults(result, posts);
+    // Ensure all categories have results
+    return this.ensureAllCategoriesHaveResults(result, posts);
   }
 
-  static ensureBalancedResults(result, allPosts) {
-    logger.info('🔄 Ensuring balanced results with platform diversity...');
-    
-    const platforms = ['reddit', 'x', 'youtube'];
-    const categories = ['painPoints', 'trendingIdeas', 'contentIdeas'];
+  static ensureAllCategoriesHaveResults(result, allPosts) {
+    logger.info('🔄 Ensuring all sentiment categories have results...');
     
     // Ensure each category has at least some posts
     const minPostsPerCategory = Math.max(1, Math.floor(allPosts.length / 10));
     
-    categories.forEach(categoryName => {
-      let categoryPosts = result[categoryName] || [];
-      
-      // If category is empty, fill it with posts from other categories
-      if (categoryPosts.length === 0 && allPosts.length > 0) {
-        logger.info(`🔄 ${categoryName} is empty, filling with posts from other categories`);
-        const otherPosts = allPosts.filter(post => 
-          !result.painPoints.includes(post) && 
-          !result.trendingIdeas.includes(post) && 
-          !result.contentIdeas.includes(post)
-        );
-        categoryPosts = otherPosts.slice(0, minPostsPerCategory);
-        result[categoryName] = categoryPosts;
-      }
-      
-      // Ensure platform diversity in each category
-      const currentPlatforms = new Set(categoryPosts.map(p => p.platform));
-      const missingPlatforms = platforms.filter(platform => !currentPlatforms.has(platform));
-      
-      if (missingPlatforms.length > 0) {
-        logger.info(`🔄 ${categoryName} missing platforms: ${missingPlatforms.join(', ')}, adding for diversity`);
-        
-        missingPlatforms.forEach(platform => {
-          const availableFromPlatform = allPosts
-            .filter(p => p.platform === platform && !categoryPosts.includes(p))
-            .sort((a, b) => (b.engagement || 0) - (a.engagement || 0));
-          
-          if (availableFromPlatform.length > 0) {
-            categoryPosts.push(availableFromPlatform[0]);
-            logger.debug(`  Added ${platform} post to ${categoryName}`);
-          }
-        });
-        
-        result[categoryName] = categoryPosts;
-      }
-    });
+    // If any category is empty, redistribute from other categories
+    if (result.painPoints.length === 0 && allPosts.length > 0) {
+      logger.info(`🔄 Pain points empty, redistributing posts from other categories`);
+      const otherPosts = [...result.trendingIdeas, ...result.contentIdeas];
+      result.painPoints = otherPosts.slice(0, minPostsPerCategory);
+    }
 
-    // Log platform distribution
-    categories.forEach(categoryName => {
+    if (result.trendingIdeas.length === 0 && allPosts.length > 0) {
+      logger.info(`🔄 Trending ideas empty, redistributing posts from other categories`);
+      const otherPosts = [...result.painPoints, ...result.contentIdeas];
+      result.trendingIdeas = otherPosts.slice(0, minPostsPerCategory);
+    }
+
+    if (result.contentIdeas.length === 0 && allPosts.length > 0) {
+      logger.info(`🔄 Content ideas empty, redistributing posts from other categories`);
+      const otherPosts = [...result.painPoints, ...result.trendingIdeas];
+      result.contentIdeas = otherPosts.slice(0, minPostsPerCategory);
+    }
+
+    // Log platform distribution for each category (mixed platforms)
+    ['painPoints', 'trendingIdeas', 'contentIdeas'].forEach(categoryName => {
       const platformCounts = this.getPlatformCounts(result[categoryName]);
-      logger.info(`📊 ${categoryName}: ${result[categoryName].length} posts - Reddit: ${platformCounts.reddit}, X: ${platformCounts.x}, YouTube: ${platformCounts.youtube}`);
+      logger.info(`📊 ${categoryName}: ${result[categoryName].length} posts - Reddit: ${platformCounts.reddit}, X: ${platformCounts.x}, YouTube: ${platformCounts.youtube} (MIXED)`);
     });
 
     return result;
