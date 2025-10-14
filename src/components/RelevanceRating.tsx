@@ -45,7 +45,13 @@ const RelevanceRating: React.FC<RelevanceRatingProps> = ({
       });
 
       if (!response.ok) {
-        throw new Error('Failed to submit rating');
+        const errorData = await response.json().catch(() => ({}));
+        if (response.status === 503) {
+          // Rating system not available
+          console.warn('Rating system not available:', errorData.error);
+          return;
+        }
+        throw new Error(errorData.error || 'Failed to submit rating');
       }
 
       setRating(newRating);
