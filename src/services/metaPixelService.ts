@@ -31,27 +31,29 @@ export class MetaPixelService {
     }
 
     try {
-      // Load Meta Pixel script dynamically
-      this.loadMetaPixelScript(() => {
-        // Initialize Facebook Pixel after script loads
-        const fbq = window.fbq = window.fbq || function() {
-          (window.fbq.q = window.fbq.q || []).push(arguments);
-        };
-        
-        if (!window._fbq) window._fbq = fbq;
-        fbq.push = fbq;
-        fbq.loaded = true;
-        fbq.version = '2.0';
-        fbq.queue = [];
+      // Initialize Facebook Pixel stub BEFORE loading the script
+      const fbq = window.fbq = window.fbq || function() {
+        (window.fbq.q = window.fbq.q || []).push(arguments);
+      };
+      
+      if (!window._fbq) window._fbq = fbq;
+      fbq.push = fbq;
+      fbq.loaded = true;
+      fbq.version = '2.0';
+      fbq.queue = [];
 
-        // Initialize the pixel
-        fbq('init', pixelId);
-        
-        // Track initial page view
-        fbq('track', 'PageView');
-        
-        this.isInitialized = true;
-        console.log('✅ Meta Pixel initialized with ID:', pixelId);
+      // Initialize the pixel
+      fbq('init', pixelId);
+      
+      // Track initial page view
+      fbq('track', 'PageView');
+      
+      this.isInitialized = true;
+      console.log('✅ Meta Pixel initialized with ID:', pixelId);
+
+      // Load Meta Pixel script asynchronously (after stub is set up)
+      this.loadMetaPixelScript(() => {
+        console.log('📊 Meta Pixel script fully loaded and ready');
       });
       
     } catch (error) {
