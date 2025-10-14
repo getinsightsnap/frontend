@@ -168,31 +168,94 @@ export class SearchService {
 
     const limitPerPlatform = limitsPerPlatform[userTier as keyof typeof limitsPerPlatform] || limitsPerPlatform.free;
 
+    // Get all posts from all categories for fallback
+    const allPosts = [...results.painPoints, ...results.trendingIdeas, ...results.contentIdeas];
+    const uniquePosts = allPosts.filter((post, index, self) => 
+      index === self.findIndex(p => p.id === post.id)
+    );
+
+    console.log(`🔧 Tier filtering: ${results.painPoints.length} pain, ${results.trendingIdeas.length} trending, ${results.contentIdeas.length} content, ${uniquePosts.length} total unique`);
+
+    // Filter each category
+    let painPoints = this.filterByPlatform(results.painPoints, limitPerPlatform);
+    let trendingIdeas = this.filterByPlatform(results.trendingIdeas, limitPerPlatform);
+    let contentIdeas = this.filterByPlatform(results.contentIdeas, limitPerPlatform);
+
+    // If any category is empty, redistribute from other categories
+    if (painPoints.length === 0 && uniquePosts.length > 0) {
+      console.log('🔄 Pain points empty, redistributing from other categories');
+      painPoints = this.redistributePosts(uniquePosts, limitPerPlatform, [...trendingIdeas, ...contentIdeas]);
+    }
+
+    if (trendingIdeas.length === 0 && uniquePosts.length > 0) {
+      console.log('🔄 Trending ideas empty, redistributing from other categories');
+      trendingIdeas = this.redistributePosts(uniquePosts, limitPerPlatform, [...painPoints, ...contentIdeas]);
+    }
+
+    if (contentIdeas.length === 0 && uniquePosts.length > 0) {
+      console.log('🔄 Content ideas empty, redistributing from other categories');
+      contentIdeas = this.redistributePosts(uniquePosts, limitPerPlatform, [...painPoints, ...trendingIdeas]);
+    }
+
     return {
-      painPoints: this.filterByPlatform(results.painPoints, limitPerPlatform),
-      trendingIdeas: this.filterByPlatform(results.trendingIdeas, limitPerPlatform),
-      contentIdeas: this.filterByPlatform(results.contentIdeas, limitPerPlatform)
+      painPoints,
+      trendingIdeas,
+      contentIdeas
     };
   }
 
   /**
    * Filter results to get N results from each platform
+   * If a platform has no results in this category, fill with other platforms
    */
   private static filterByPlatform(posts: any[], limitPerPlatform: number): any[] {
     const platforms = ['reddit', 'x', 'youtube'];
     const filtered: any[] = [];
+    const usedPosts = new Set<string>();
 
     console.log(`🔧 Filtering ${posts.length} posts, ${limitPerPlatform} per platform`);
 
-    // Get N posts from each platform
+    // First pass: Get N posts from each platform if available
     platforms.forEach(platform => {
-      const platformPosts = posts.filter(post => post.platform === platform);
-      console.log(`  ${platform}: ${platformPosts.length} available, taking ${Math.min(platformPosts.length, limitPerPlatform)}`);
-      filtered.push(...platformPosts.slice(0, limitPerPlatform));
+      const platformPosts = posts.filter(post => post.platform === platform && !usedPosts.has(post.id));
+      const toTake = Math.min(platformPosts.length, limitPerPlatform);
+      console.log(`  ${platform}: ${platformPosts.length} available, taking ${toTake}`);
+      
+      const selectedPosts = platformPosts.slice(0, toTake);
+      selectedPosts.forEach(post => usedPosts.add(post.id));
+      filtered.push(...selectedPosts);
     });
 
-    console.log(`✅ Filtered result: ${filtered.length} total posts`);
+    // Second pass: Fill remaining slots with any available posts (cross-platform)
+    const remainingSlots = (limitPerPlatform * 3) - filtered.length;
+    if (remainingSlots > 0) {
+      const remainingPosts = posts.filter(post => !usedPosts.has(post.id));
+      const toAdd = Math.min(remainingPosts.length, remainingSlots);
+      console.log(`  🔄 Filling ${toAdd} remaining slots with cross-platform posts`);
+      filtered.push(...remainingPosts.slice(0, toAdd));
+    }
+
+    console.log(`✅ Filtered result: ${filtered.length} total posts (target: ${limitPerPlatform * 3})`);
     return filtered;
+  }
+
+  /**
+   * Redistribute posts when a category is empty
+   * Takes posts from all available posts, excluding already used ones
+   */
+  private static redistributePosts(allPosts: any[], limitPerPlatform: number, excludePosts: any[]): any[] {
+    const excludeIds = new Set(excludePosts.map(post => post.id));
+    const availablePosts = allPosts.filter(post => !excludeIds.has(post.id));
+    
+    // Sort by engagement to get the best posts
+    const sortedPosts = availablePosts.sort((a, b) => b.engagement - a.engagement);
+    
+    // Take up to the limit
+    const targetCount = limitPerPlatform * 3;
+    const toTake = Math.min(sortedPosts.length, targetCount);
+    
+    console.log(`🔄 Redistributing ${toTake} posts from ${availablePosts.length} available`);
+    return sortedPosts.slice(0, toTake);
   }
 
   /**
