@@ -37,7 +37,8 @@ export class SearchService {
           query: params.query,
           platforms: params.platforms,
           language: params.language,
-          timeFilter: params.timeFilter
+          timeFilter: params.timeFilter,
+          userTier: options?.userTier || 'free'
         })
       });
 
@@ -77,20 +78,16 @@ export class SearchService {
         console.log('📝 No results message:', result.metadata.noResultsMessage.title);
       }
 
-      // Apply tier-based filtering
-      const userTier = options?.userTier || 'free';
-      const filteredResults = this.applyTierFiltering(result.data, userTier);
-      
       console.log('✅ Analysis complete:', {
-        painPoints: filteredResults.painPoints.length,
-        trendingIdeas: filteredResults.trendingIdeas.length,
-        contentIdeas: filteredResults.contentIdeas.length,
-        tier: userTier
+        painPoints: result.data.painPoints.length,
+        trendingIdeas: result.data.trendingIdeas.length,
+        contentIdeas: result.data.contentIdeas.length,
+        tier: options?.userTier || 'free'
       });
 
       // Return both results and metadata including noResultsMessage
       return {
-        results: filteredResults,
+        results: result.data,
         metadata: result.metadata
       };
 
@@ -153,122 +150,22 @@ export class SearchService {
   }
 
   /**
-   * Apply tier-based result filtering
-   * Distributes results per platform for balanced representation
-   * Free: 3 from each platform = 9 total per category
-   * Standard: 5 from each platform = 15 total per category
-   * Pro: 10 from each platform = 30 total per category
-   */
-  private static applyTierFiltering(results: AnalyzedResults, userTier: string): AnalyzedResults {
-    const limitsPerPlatform = {
-      free: 3,      // 3 per platform = 9 total
-      standard: 5,  // 5 per platform = 15 total
-      pro: 10       // 10 per platform = 30 total
-    };
-
-    const limitPerPlatform = limitsPerPlatform[userTier as keyof typeof limitsPerPlatform] || limitsPerPlatform.free;
-
-    // Get all posts from all categories for fallback
-    const allPosts = [...results.painPoints, ...results.trendingIdeas, ...results.contentIdeas];
-    const uniquePosts = allPosts.filter((post, index, self) => 
-      index === self.findIndex(p => p.id === post.id)
-    );
-
-    console.log(`🔧 Tier filtering: ${results.painPoints.length} pain, ${results.trendingIdeas.length} trending, ${results.contentIdeas.length} content, ${uniquePosts.length} total unique`);
-
-    // Filter each category
-    let painPoints = this.filterByPlatform(results.painPoints, limitPerPlatform);
-    let trendingIdeas = this.filterByPlatform(results.trendingIdeas, limitPerPlatform);
-    let contentIdeas = this.filterByPlatform(results.contentIdeas, limitPerPlatform);
-
-    // If any category is empty, redistribute from other categories
-    if (painPoints.length === 0 && uniquePosts.length > 0) {
-      console.log('🔄 Pain points empty, redistributing from other categories');
-      painPoints = this.redistributePosts(uniquePosts, limitPerPlatform, [...trendingIdeas, ...contentIdeas]);
-    }
-
-    if (trendingIdeas.length === 0 && uniquePosts.length > 0) {
-      console.log('🔄 Trending ideas empty, redistributing from other categories');
-      trendingIdeas = this.redistributePosts(uniquePosts, limitPerPlatform, [...painPoints, ...contentIdeas]);
-    }
-
-    if (contentIdeas.length === 0 && uniquePosts.length > 0) {
-      console.log('🔄 Content ideas empty, redistributing from other categories');
-      contentIdeas = this.redistributePosts(uniquePosts, limitPerPlatform, [...painPoints, ...trendingIdeas]);
-    }
-
-    return {
-      painPoints,
-      trendingIdeas,
-      contentIdeas
-    };
-  }
-
-  /**
-   * Filter results to get N results from each platform
-   * If a platform has no results in this category, fill with other platforms
-   */
-  private static filterByPlatform(posts: any[], limitPerPlatform: number): any[] {
-    const platforms = ['reddit', 'x', 'youtube'];
-    const filtered: any[] = [];
-    const usedPosts = new Set<string>();
-
-    console.log(`🔧 Filtering ${posts.length} posts, ${limitPerPlatform} per platform`);
-
-    // First pass: Get N posts from each platform if available
-    platforms.forEach(platform => {
-      const platformPosts = posts.filter(post => post.platform === platform && !usedPosts.has(post.id));
-      const toTake = Math.min(platformPosts.length, limitPerPlatform);
-      console.log(`  ${platform}: ${platformPosts.length} available, taking ${toTake}`);
-      
-      const selectedPosts = platformPosts.slice(0, toTake);
-      selectedPosts.forEach(post => usedPosts.add(post.id));
-      filtered.push(...selectedPosts);
-    });
-
-    // Second pass: Fill remaining slots with any available posts (cross-platform)
-    const remainingSlots = (limitPerPlatform * 3) - filtered.length;
-    if (remainingSlots > 0) {
-      const remainingPosts = posts.filter(post => !usedPosts.has(post.id));
-      const toAdd = Math.min(remainingPosts.length, remainingSlots);
-      console.log(`  🔄 Filling ${toAdd} remaining slots with cross-platform posts`);
-      filtered.push(...remainingPosts.slice(0, toAdd));
-    }
-
-    console.log(`✅ Filtered result: ${filtered.length} total posts (target: ${limitPerPlatform * 3})`);
-    return filtered;
-  }
-
-  /**
-   * Redistribute posts when a category is empty
-   * Takes posts from all available posts, excluding already used ones
-   */
-  private static redistributePosts(allPosts: any[], limitPerPlatform: number, excludePosts: any[]): any[] {
-    const excludeIds = new Set(excludePosts.map(post => post.id));
-    const availablePosts = allPosts.filter(post => !excludeIds.has(post.id));
-    
-    // Sort by engagement to get the best posts
-    const sortedPosts = availablePosts.sort((a, b) => b.engagement - a.engagement);
-    
-    // Take up to the limit
-    const targetCount = limitPerPlatform * 3;
-    const toTake = Math.min(sortedPosts.length, targetCount);
-    
-    console.log(`🔄 Redistributing ${toTake} posts from ${availablePosts.length} available`);
-    return sortedPosts.slice(0, toTake);
-  }
-
-  /**
    * Get tier limits for UI display
    */
   static getTierLimits(userTier: string) {
-    // Results are per platform, so multiply by 3 for total
-    const perPlatform = userTier === 'free' ? 3 : userTier === 'standard' ? 5 : 10;
-    const totalPerCategory = perPlatform * 3; // 3 platforms
+    // Results are now handled by backend tier limits
+    const tierLimits = {
+      free: { painPoints: 3, trendingIdeas: 3, contentIdeas: 3 },
+      standard: { painPoints: 10, trendingIdeas: 10, contentIdeas: 10 },
+      pro: { painPoints: 20, trendingIdeas: 20, contentIdeas: 20 }
+    };
+    
+    const limits = tierLimits[userTier as keyof typeof tierLimits] || tierLimits.free;
     
     return {
       maxSearches: userTier === 'free' ? 5 : userTier === 'standard' ? 50 : 999999,
-      resultsPerCategory: totalPerCategory  // Free: 9, Standard: 15, Pro: 30
+      resultsPerCategory: limits.painPoints, // Show pain points limit as example
+      tierLimits: limits
     };
   }
 }

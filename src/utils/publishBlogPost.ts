@@ -15,7 +15,7 @@ export async function publishContentCreatorsBlogPost() {
   try {
     console.log('📝 Publishing blog post...');
 
-    const title = 'How InsightSnap Empowers Content Creators with Multi-Platform Research';
+    const title = 'How InsightSnap Empowers Content Creators with Multi-Platform Content Research';
     
     const rawContent = `<div class="prose prose-lg max-w-none">
 <h2>The Challenge: Modern Content Research</h2>
