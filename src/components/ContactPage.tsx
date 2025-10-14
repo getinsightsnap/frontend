@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Mail, Send, CheckCircle, Twitter, Youtube, Instagram, Facebook } from 'lucide-react';
+import { MetaPixelService } from '../services/metaPixelService';
 
 interface User {
   id: string;
@@ -23,6 +24,10 @@ interface ContactPageProps {
 }
 
 const ContactPage: React.FC<ContactPageProps> = ({ onHome, onLogin, onSignUp, onContact, onPrivacyPolicy, onTermsAndConditions, onBlog, user, onSignOut, onPricing }) => {
+  useEffect(() => {
+    MetaPixelService.trackPageView('contact');
+  }, []);
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',

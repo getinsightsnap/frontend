@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { ArrowLeft, Twitter, Youtube, Instagram, Facebook, Mail } from 'lucide-react';
+import { MetaPixelService } from '../services/metaPixelService';
 
 interface User {
   id: string;
@@ -22,6 +23,10 @@ interface PrivacyPolicyProps {
 }
 
 const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack, onHome, onContact, onBlog, onTermsAndConditions, user, onSignOut, onLogin, onSignUp }) => {
+  useEffect(() => {
+    MetaPixelService.trackPageView('privacy-policy');
+  }, []);
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ArrowLeft, 
   Home, 
@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { AnalyzedResults, SocialPost } from '../services/apiConfig';
 import ScriptGenerationModal from './ScriptGenerationModal';
+import { MetaPixelService } from '../services/metaPixelService';
 
 interface ResultsPageProps {
   results: AnalyzedResults;
@@ -60,6 +61,10 @@ const ResultsPage: React.FC<ResultsPageProps> = ({
   user,
   onSignOut
 }) => {
+  useEffect(() => {
+    MetaPixelService.trackPageView('results');
+  }, []);
+
   const [scriptModalOpen, setScriptModalOpen] = useState(false);
   const [scriptModalCategory, setScriptModalCategory] = useState<'painPoints' | 'trendingIdeas' | 'contentIdeas'>('painPoints');
   const [scriptModalPosts, setScriptModalPosts] = useState<SocialPost[]>([]);

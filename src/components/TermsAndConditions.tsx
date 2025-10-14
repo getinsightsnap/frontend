@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Twitter, Youtube, Instagram, Facebook, Mail } from 'lucide-react';
+import { MetaPixelService } from '../services/metaPixelService';
 
 interface User {
   id: string;
@@ -22,6 +23,10 @@ interface TermsAndConditionsProps {
 }
 
 const TermsAndConditions: React.FC<TermsAndConditionsProps> = ({ onHome, onContact, onBlog, onPrivacyPolicy, onTermsAndConditions, user, onSignOut, onLogin, onSignUp }) => {
+  useEffect(() => {
+    MetaPixelService.trackPageView('terms-and-conditions');
+  }, []);
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}

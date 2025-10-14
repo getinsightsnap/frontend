@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Search, TrendingUp, MessageSquare, Lightbulb, Check, Star, ArrowRight, Twitter, Youtube, Instagram, Facebook, Mail, Sparkles } from 'lucide-react';
+import { MetaPixelService } from '../services/metaPixelService';
 
 interface User {
   id: string;
@@ -23,6 +24,10 @@ interface LandingPageProps {
 }
 
 const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin, onSignUp, onContact, onPrivacyPolicy, onTermsAndConditions, onBlog, onPricing, user, onSignOut }) => {
+  useEffect(() => {
+    MetaPixelService.trackPageView('home');
+  }, []);
+
   const handleLogoClick = () => {
     // Scroll to top of the page
     window.scrollTo({ top: 0, behavior: 'smooth' });

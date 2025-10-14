@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Search, 
   TrendingUp as Trending, 
@@ -23,6 +23,7 @@ import {
 import { SearchService, SearchResponse } from '../services/searchService';
 import { SearchParams, AnalyzedResults, SocialPost } from '../services/apiConfig';
 import { SearchHistoryService } from '../services/searchHistoryService';
+import { MetaPixelService } from '../services/metaPixelService';
 
 interface ResearchDashboardProps {
   onHome: () => void;
@@ -56,6 +57,10 @@ interface ResearchDashboardProps {
 const ResearchDashboard: React.FC<ResearchDashboardProps> = ({
   onHome, onContact, onBlog, onLogin, onSignUp, user, searchCount, onSearchLimitReached, onPrivacyPolicy, onTermsAndConditions, onSearchPerformed, onSignOut, onShowResults, onPricing
 }) => {
+  useEffect(() => {
+    MetaPixelService.trackPageView('research-dashboard');
+  }, []);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLanguage, setSelectedLanguage] = useState('en');
   const [timeFilter, setTimeFilter] = useState('week');

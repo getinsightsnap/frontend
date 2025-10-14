@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X, Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
 import { AuthService } from '../services/authService';
+import { MetaPixelService } from '../services/metaPixelService';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -135,6 +136,14 @@ const AuthModal: React.FC<AuthModalProps> = ({
     setIsLoading(true);
     try {
       await onAuth(email, password, name);
+      
+      // Track successful auth event
+      if (mode === 'signup') {
+        MetaPixelService.trackSignUp('email');
+      } else {
+        MetaPixelService.trackLogin('email');
+      }
+      
       // Don't reset loading state here - let the parent component handle it
       // The parent will close the modal on success or show error on failure
     } catch (error) {
@@ -150,6 +159,13 @@ const AuthModal: React.FC<AuthModalProps> = ({
       const { error } = await AuthService.signInWithGoogle();
       if (error) {
         console.error('Google sign in error:', error);
+      } else {
+        // Track Google sign in
+        if (mode === 'signup') {
+          MetaPixelService.trackSignUp('google');
+        } else {
+          MetaPixelService.trackLogin('google');
+        }
       }
       // The redirect will happen automatically, so we don't need to do anything else here
     } catch (error) {
