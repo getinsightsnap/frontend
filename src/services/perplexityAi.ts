@@ -114,46 +114,102 @@ Please categorize these posts and return the indices for each category.`;
   }
 
   private static fallbackCategorization(posts: SocialPost[]): AnalyzedResults {
-    // Simple fallback based on keywords and engagement
-    const sortedPosts = [...posts].sort((a, b) => b.engagement - a.engagement);
+    console.log('🔄 Using enhanced fallback categorization');
     
-    const painKeywords = ['problem', 'issue', 'frustrated', 'difficult', 'hard', 'struggle', 'hate', 'annoying', 'broken'];
-    const trendingKeywords = ['trending', 'viral', 'popular', 'hot', 'new', 'latest', 'everyone', 'all over'];
-    const contentKeywords = ['how to', 'tutorial', 'learn', 'teach', 'explain', 'guide', 'want to know', 'help'];
+    // Enhanced fallback based on keywords and engagement
+    const painKeywords = [
+      'problem', 'issue', 'frustrated', 'difficult', 'hard', 'struggle', 'hate', 'annoying', 'broken',
+      'fail', 'worst', 'terrible', 'awful', 'sucks', 'disappointed', 'angry', 'upset', 'complaint',
+      'bug', 'error', 'glitch', 'not working', 'broken', 'slow', 'expensive', 'overpriced',
+      'confused', 'lost', 'stuck', 'can\'t', 'won\'t', 'doesn\'t work', 'help me', 'fix this'
+    ];
+    
+    const trendingKeywords = [
+      'trending', 'viral', 'popular', 'hot', 'new', 'latest', 'everyone', 'all over', 'everywhere',
+      'breaking', 'just dropped', 'huge', 'massive', 'insane', 'crazy', 'amazing', 'incredible',
+      'game changer', 'revolutionary', 'breakthrough', 'innovative', 'cutting edge', 'next level'
+    ];
+    
+    const contentKeywords = [
+      'how to', 'tutorial', 'learn', 'teach', 'explain', 'guide', 'want to know', 'help',
+      'tips', 'tricks', 'advice', 'recommend', 'suggest', 'what is', 'where to', 'when to',
+      'why', 'best way', 'step by step', 'beginner', 'advanced', 'pro tip', 'expert'
+    ];
 
     const categorizePost = (post: SocialPost) => {
       const content = post.content.toLowerCase();
+      
       const painScore = painKeywords.filter(keyword => content.includes(keyword)).length;
       const trendingScore = trendingKeywords.filter(keyword => content.includes(keyword)).length;
       const contentScore = contentKeywords.filter(keyword => content.includes(keyword)).length;
       
-      if (painScore > trendingScore && painScore > contentScore) return 'pain';
-      if (trendingScore > contentScore) return 'trending';
-      return 'content';
+      // Add engagement bonus
+      const engagementBonus = Math.log(post.engagement + 1) / 10;
+      
+      // Check for question marks (content indicator)
+      const questionBonus = (content.match(/\?/g) || []).length * 0.5;
+      
+      // Check for emotional words
+      const emotionalWords = ['love', 'hate', 'amazing', 'terrible', 'awesome', 'awful', 'incredible', 'horrible'];
+      const emotionalBonus = emotionalWords.filter(word => content.includes(word)).length * 0.3;
+      
+      return {
+        pain: painScore + engagementBonus + emotionalBonus,
+        trending: trendingScore + engagementBonus,
+        content: contentScore + engagementBonus + questionBonus,
+        post
+      };
     };
 
-    const painPoints: SocialPost[] = [];
-    const trendingIdeas: SocialPost[] = [];
-    const contentIdeas: SocialPost[] = [];
+    // Score all posts
+    const scoredPosts = posts.map(categorizePost);
+    
+    // Sort by highest scores for each category
+    const painPoints = scoredPosts
+      .sort((a, b) => b.pain - a.pain)
+      .slice(0, 3)
+      .map(item => item.post);
 
-    for (const post of sortedPosts) {
-      const category = categorizePost(post);
-      if (category === 'pain' && painPoints.length < 3) painPoints.push(post);
-      else if (category === 'trending' && trendingIdeas.length < 3) trendingIdeas.push(post);
-      else if (category === 'content' && contentIdeas.length < 3) contentIdeas.push(post);
-      
-      if (painPoints.length === 3 && trendingIdeas.length === 3 && contentIdeas.length === 3) break;
+    const trendingIdeas = scoredPosts
+      .sort((a, b) => b.trending - a.trending)
+      .slice(0, 3)
+      .map(item => item.post);
+
+    const contentIdeas = scoredPosts
+      .sort((a, b) => b.content - a.content)
+      .slice(0, 3)
+      .map(item => item.post);
+
+    // Remove duplicates and fill with remaining high-engagement posts
+    const usedPosts = new Set([...painPoints, ...trendingIdeas, ...contentIdeas].map(p => p.id));
+    const remaining = posts
+      .filter(p => !usedPosts.has(p.id))
+      .sort((a, b) => b.engagement - a.engagement);
+
+    // Fill missing slots
+    while (painPoints.length < 3 && remaining.length > 0) {
+      painPoints.push(remaining.shift()!);
+    }
+    while (trendingIdeas.length < 3 && remaining.length > 0) {
+      trendingIdeas.push(remaining.shift()!);
+    }
+    while (contentIdeas.length < 3 && remaining.length > 0) {
+      contentIdeas.push(remaining.shift()!);
     }
 
-    // Fill remaining slots with top posts
-    const remaining = sortedPosts.filter(post => 
-      !painPoints.includes(post) && !trendingIdeas.includes(post) && !contentIdeas.includes(post)
-    );
+    const result = {
+      painPoints: painPoints.slice(0, 3),
+      trendingIdeas: trendingIdeas.slice(0, 3),
+      contentIdeas: contentIdeas.slice(0, 3)
+    };
 
-    while (painPoints.length < 3 && remaining.length > 0) painPoints.push(remaining.shift()!);
-    while (trendingIdeas.length < 3 && remaining.length > 0) trendingIdeas.push(remaining.shift()!);
-    while (contentIdeas.length < 3 && remaining.length > 0) contentIdeas.push(remaining.shift()!);
+    console.log('✅ Enhanced fallback complete:', {
+      painPoints: result.painPoints.length,
+      trendingIdeas: result.trendingIdeas.length,
+      contentIdeas: result.contentIdeas.length,
+      totalPosts: posts.length
+    });
 
-    return { painPoints, trendingIdeas, contentIdeas };
+    return result;
   }
 }
