@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Calendar, Clock, User, Tag, Twitter, Youtube, Instagram, Facebook, Mail } from 'lucide-react';
+import { Calendar, Clock, User, Tag, Twitter, Youtube, Instagram, Facebook, Mail, RefreshCw } from 'lucide-react';
 import { BlogService, BlogPost } from '../services/blogService';
 import { MetaPixelService } from '../services/metaPixelService';
 
@@ -32,12 +32,14 @@ const BlogPage: React.FC<BlogPageProps> = ({ onHome, onContact, onBlog, onPrivac
     MetaPixelService.trackPageView('blog');
   }, []);
 
-  const loadPosts = async () => {
+  const loadPosts = async (forceRefresh = false) => {
     try {
       setIsLoading(true);
+      // Add timestamp to force fresh data
       const { data, error } = await BlogService.getPosts(true); // Only get published posts
       if (error) throw error;
       setPosts(data || []);
+      console.log('📝 Blog posts loaded:', data?.length || 0, 'posts');
     } catch (err) {
       console.error('Error loading posts:', err);
       setError('Failed to load blog posts');
@@ -168,7 +170,16 @@ const BlogPage: React.FC<BlogPageProps> = ({ onHome, onContact, onBlog, onPrivac
       {/* Page Header */}
       <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-4xl font-bold mb-4">InsightSnap Blog</h1>
+          <div className="flex items-center justify-center gap-4 mb-4">
+            <h1 className="text-4xl font-bold">InsightSnap Blog</h1>
+            <button
+              onClick={() => loadPosts(true)}
+              className="p-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
+              title="Refresh blog posts"
+            >
+              <RefreshCw className="w-5 h-5" />
+            </button>
+          </div>
           <p className="text-lg text-indigo-100 max-w-2xl mx-auto">
             Insights, tips, and strategies for understanding your audience through social media research
           </p>
