@@ -18,6 +18,12 @@ console.error = (...args: any[]) => {
 
 import App from './App.tsx';
 import './index.css';
+import { publishContentCreatorsBlogPost } from './utils/publishBlogPost';
+
+// Make blog post publisher available globally for easy console access
+if (typeof window !== 'undefined') {
+  (window as any).publishContentCreatorsBlogPost = publishContentCreatorsBlogPost;
+}
 
 createRoot(document.getElementById('root')!).render(
   <App />
