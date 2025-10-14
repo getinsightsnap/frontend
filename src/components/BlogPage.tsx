@@ -35,11 +35,11 @@ const BlogPage: React.FC<BlogPageProps> = ({ onHome, onContact, onBlog, onPrivac
   const loadPosts = async (forceRefresh = false) => {
     try {
       setIsLoading(true);
-      // Add timestamp to force fresh data
-      const { data, error } = await BlogService.getPosts(true); // Only get published posts
+      // Pass forceRefresh to BlogService to bypass caching
+      const { data, error } = await BlogService.getPosts(true, forceRefresh);
       if (error) throw error;
       setPosts(data || []);
-      console.log('📝 Blog posts loaded:', data?.length || 0, 'posts');
+      console.log('📝 Blog posts loaded:', data?.length || 0, 'posts', forceRefresh ? '(force refresh)' : '');
     } catch (err) {
       console.error('Error loading posts:', err);
       setError('Failed to load blog posts');

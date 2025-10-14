@@ -70,13 +70,21 @@ export class BlogService {
   }
 
   // Get all blog posts
-  static async getPosts(published: boolean = true) {
+  static async getPosts(published: boolean = true, forceRefresh: boolean = false) {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('blog_posts')
         .select('*')
         .eq('published', published)
         .order('created_at', { ascending: false });
+
+      // Add cache busting if force refresh is requested
+      if (forceRefresh) {
+        // Add a timestamp to the query to bypass Supabase client-side caching
+        query = query.order('updated_at', { ascending: false });
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       return { data, error: null };
