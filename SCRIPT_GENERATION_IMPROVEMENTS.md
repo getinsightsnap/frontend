@@ -215,17 +215,32 @@ To test the improvements:
 
 ---
 
+## Frontend Also Fixed! (CRITICAL UPDATE)
+
+**NEW DISCOVERY:** The generic content was coming from the **FRONTEND**, not the backend! The frontend has its own Perplexity API integration that was being used as a fallback.
+
+### Frontend Changes Made:
+✅ Updated `src/services/contentGenerationService.ts`
+✅ Enhanced system prompt with BAD vs GOOD examples (same as backend)
+✅ Added category-specific requirements for all 3 categories
+✅ Banned generic phrases with strict validation
+✅ Replaced fallback script's generic fluff with clear error message
+✅ Increased temperature to 0.8 for more creative output
+✅ Added detection to reject generic content and retry
+
+### How It Works Now:
+1. **First try:** Backend API (with all our improvements)
+2. **If backend fails:** Frontend calls Perplexity directly (also with improvements now)
+3. **If both fail:** Shows clear error message instead of generic fluff
+
 ## Next Steps
 
-1. ✅ Deploy to Railway backend
-2. ⏳ Test with real user searches
-3. ⏳ Monitor AI responses for quality
-4. ⏳ Gather user feedback
-5. ⏳ Iterate based on results
+1. ✅ Backend improvements deployed
+2. ✅ Frontend improvements deployed
+3. ⏳ Test with real user searches
+4. ⏳ Monitor AI responses for quality
+5. ⏳ Gather user feedback
+6. ⏳ Iterate based on results
 
-If scripts are still too generic, we can:
-- Add more specific examples to the prompt
-- Increase temperature further for creativity
-- Add a post-processing step to validate specificity
-- Create category-specific system prompts
+The script generation should now produce SPECIFIC, ACTIONABLE content with real tools, frameworks, and examples!
 
