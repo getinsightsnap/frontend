@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import LandingPage from './components/LandingPage';
-import ResearchDashboard from './components/ResearchDashboard';
+// import ResearchDashboard from './components/ResearchDashboard'; // Now handled by MultiStepSearchToggle
+import { MultiStepSearchToggle } from './components/MultiStepSearchToggle';
 import ResultsPage from './components/ResultsPage';
 import AuthModal from './components/AuthModal';
 import AuthCallback from './components/AuthCallback';
@@ -906,13 +907,13 @@ function App() {
           onSignOut={handleSignOut}
         />
       ) : currentView === 'dashboard' ? (
-        <ResearchDashboard
+        <MultiStepSearchToggle
           onHome={handleGoHome}
           onContact={handleContact}
           onBlog={handleBlog}
           onLogin={handleLogin}
           onSignUp={handleSignUp}
-          onShowResults={(results, query) => handleSearchResults(results, query)}
+          onShowResults={(results: any, query: string) => handleSearchResults(results, query)}
           onSearchLimitReached={handleSearchLimitReached}
           onSearchPerformed={handleSearchCountUpdate}
           onSignOut={handleSignOut}
