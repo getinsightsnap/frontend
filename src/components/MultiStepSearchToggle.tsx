@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Sparkles, Search } from 'lucide-react';
 import { EnhancedResearchDashboard } from './EnhancedResearchDashboard';
-import { ResearchDashboard } from './ResearchDashboard';
+import ResearchDashboard from './ResearchDashboard';
 
 interface MultiStepSearchToggleProps {
   onHome: () => void;
