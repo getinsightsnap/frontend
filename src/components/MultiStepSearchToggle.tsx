@@ -113,27 +113,7 @@ export const MultiStepSearchToggle: React.FC<MultiStepSearchToggleProps> = ({
 
   return (
     <div>
-      {/* Add Enhanced Search Button to Current Dashboard */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <Sparkles className="w-6 h-6" />
-            <div>
-              <h3 className="font-semibold">🎯 New: Enhanced AI Search</h3>
-              <p className="text-sm text-blue-100">Get more relevant results with our multi-step AI search</p>
-            </div>
-          </div>
-          <button
-            onClick={() => setUseEnhancedSearch(true)}
-            className="flex items-center space-x-2 bg-white text-blue-600 px-4 py-2 rounded-lg hover:bg-blue-50 transition-colors font-medium"
-          >
-            <Search className="w-4 h-4" />
-            <span>Try Enhanced Search</span>
-          </button>
-        </div>
-      </div>
-      
-      {/* Original Research Dashboard */}
+      {/* Original Research Dashboard - Now with Enhanced Search integrated */}
       <ResearchDashboard
         onHome={onHome}
         onContact={onContact}
