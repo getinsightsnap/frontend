@@ -38,7 +38,18 @@ export class ContentGenerationService {
           messages: [
             {
               role: 'system',
-              content: 'You are an expert content creator and scriptwriter. You create engaging, well-structured content based on social media insights. Always respond with valid JSON only.'
+              content: `You are an expert content creator and scriptwriter with 10+ years of experience. You create SPECIFIC, ACTIONABLE content, NOT generic instructions.
+
+CRITICAL RULES:
+- Extract EXACT insights from the social media posts provided
+- Provide CONCRETE solutions, strategies, and steps (with numbers, tools, frameworks)
+- Write ACTUAL content that educates/solves/informs, NOT meta-instructions about how to think
+- Be specific and detailed, avoid vague statements
+
+BAD EXAMPLE: "Start by identifying your core challenge and then take action"
+GOOD EXAMPLE: "Your core challenge is cash flow when scaling. Here's what to do: 1) Implement weekly budget reviews every Monday, 2) Use the Profit First method - allocate 5% to profit first, 3) Cut contractor costs by hiring one full-time dev instead of 3 freelancers"
+
+Always respond with valid JSON only. Your content must be immediately usable without any additional work.`
             },
             {
               role: 'user',
@@ -46,7 +57,7 @@ export class ContentGenerationService {
             }
           ],
           max_tokens: maxTokens,
-          temperature: 0.7,
+          temperature: 0.8,
           top_p: 0.9,
           return_citations: false,
           search_domain_filter: ["perplexity.ai"],
@@ -85,15 +96,30 @@ export class ContentGenerationService {
       // Create content type specific prompts
       const contentSpecs = this.getContentSpecifications(request.contentType, request.length);
 
-      // Determine the content focus based on category
+      // Determine the content focus based on category with SPECIFIC requirements
       const contentFocus = request.category === 'painPoints' 
-        ? 'Create content that addresses the problem/pain point mentioned in the post and provides practical solutions'
+        ? `PAIN POINT SOLUTION - CREATE SPECIFIC, ACTIONABLE CONTENT:
+- Identify the EXACT problem from the posts (e.g., "spending out of control when scaling from 3 to 12 employees")
+- Provide 3-5 CONCRETE solutions with specific steps (e.g., "Implement weekly budget reviews every Monday at 9am")
+- Give real examples, tools, or frameworks (e.g., "Use Profit First method: allocate 5% to profit account first")
+- Include immediate actions they can take TODAY
+- DO NOT write generic advice like "manage better" - write specific advice like "Cut contractor costs 30% by hiring 1 full-time dev instead of 3 freelancers"`
         : request.category === 'trendingIdeas'
-        ? 'Create content that explores the trending topic/idea mentioned in the post and provides valuable insights'
-        : 'Create educational content that teaches about the topic/idea mentioned in the post';
+        ? `TRENDING TOPIC ANALYSIS - CREATE MOMENTUM-DRIVEN CONTENT:
+- State the SPECIFIC trend from the posts (e.g., "AI agents replacing customer service teams")
+- Provide a UNIQUE angle or insight (e.g., "The real opportunity is in AI agent templates, not building agents")
+- Include recent stats or numbers (e.g., "3 companies saved $50K in 2 months")
+- Give 3-5 ways to capitalize on this trend NOW
+- DO NOT write generic trend commentary - write specific insights with data`
+        : `EDUCATIONAL CONTENT - CREATE TEACHING-FOCUSED CONTENT:
+- Answer the SPECIFIC question or knowledge gap from the posts
+- Break down concepts with simple examples
+- Provide step-by-step process or framework
+- Include real-world examples or case studies
+- DO NOT write vague explanations - write clear teaching with concrete examples`;
 
       const prompt = `
-You are a professional content creator. Your task is to write a COMPLETE, WORD-FOR-WORD ${request.contentType} script that a content creator can immediately use to create their content.
+You are a professional content creator. Your task is to write a COMPLETE, WORD-FOR-WORD ${request.contentType} script that is SPECIFIC and ACTIONABLE.
 
 SOCIAL MEDIA POST THAT INSPIRED THIS:
 ${postsContext}
@@ -102,12 +128,14 @@ YOUR TASK:
 ${contentFocus}
 
 CRITICAL INSTRUCTIONS:
-1. Write an ACTUAL ${request.contentType} script with complete sentences and paragraphs
-2. DO NOT write guidelines or instructions on how to make content
-3. Write the exact words the content creator should say or write
-4. Focus on the SPECIFIC topic/issue mentioned in the post above
-5. DO NOT mention the category "${request.category}" - only discuss the actual post topic
-6. Make it sound natural and ${request.tone}
+1. Write ACTUAL CONTENT with SPECIFIC insights, solutions, and advice - NOT generic instructions like "identify the challenge" or "take action"
+2. Extract and address the EXACT problems, trends, or questions from the social media posts above
+3. Provide CONCRETE, ACTIONABLE steps with real examples (e.g., "Use Finmark for weekly budget tracking" not "track your budget better")
+4. DO NOT use vague phrases like "let me break this down", "start by identifying", "take action", "many people struggle"
+5. Include specific numbers, strategies, tools, or frameworks when relevant
+6. Write as if you're an expert giving a masterclass, not a teacher explaining how to teach
+7. Focus on the SPECIFIC topic/issue mentioned in the post - DO NOT mention the category "${request.category}"
+8. Make it sound natural and ${request.tone}
 
 ${contentSpecs.structure}
 
@@ -117,14 +145,9 @@ CONTENT SPECIFICATIONS:
 - Tone: ${request.tone}
 - Format: Complete, ready-to-use script
 
-EXAMPLE OF WHAT TO DO:
-If the post is about "struggling with AI learning", write:
-"Hey everyone! Today I want to dive into something many of you asked about - learning AI can feel overwhelming..."
-
-EXAMPLE OF WHAT NOT TO DO (Don't write this):
-"1. Introduction to the topic
-2. Discuss the main points
-3. Provide solutions"
+EXAMPLE OF BAD vs GOOD CONTENT:
+❌ BAD: "Today we'll explore the topic. First, understand the challenge. Then identify your problems. Finally, take action. Many people struggle with this."
+✅ GOOD: "Your agency grew from 3 to 12 employees and spending spiraled. Here's the fix: 1) Implement the 'Rule of 40' - keep employee costs under 40% of revenue (you're at 65%). 2) Switch to weekly budget reviews every Monday at 9am using Finmark. 3) Cut contractor costs 30% - hire 1 full-time dev at $8K instead of 3 freelancers at $15K. Saves $7K/month = $84K/year. Action for TODAY: Calculate your Rule of 40 number right now."
 
 RESPOND ONLY WITH VALID JSON:
 {
@@ -168,12 +191,26 @@ ABSOLUTE REQUIREMENTS:
           throw new Error('Invalid script structure received');
         }
 
-        // Check if content is actually a script (not guidelines)
-        if (generatedScript.content.length < 100 || 
-            generatedScript.content.includes('Understanding the core issue') ||
-            generatedScript.content.includes('Practical solutions and actionable advice')) {
-          console.warn('⚠️ Generated content looks like guidelines, using fallback');
-          return this.createFallbackScript(request);
+        // Check if content is actually a script (not guidelines) - more strict checks
+        const genericPhrases = [
+          'Understanding the core issue',
+          'Practical solutions and actionable advice',
+          'Let me break down',
+          'Start by identifying',
+          'Take action',
+          'Many people struggle with this',
+          'First, it\'s important to understand',
+          'Knowledge without action doesn\'t create change'
+        ];
+        
+        const hasGenericContent = genericPhrases.some(phrase => 
+          generatedScript.content.toLowerCase().includes(phrase.toLowerCase())
+        );
+        
+        if (generatedScript.content.length < 100 || hasGenericContent) {
+          console.warn('⚠️ Generated content contains generic phrases or is too short, regenerating...');
+          // Try one more time with more aggressive prompt
+          throw new Error('Generic content detected, will retry');
         }
 
         console.log('✅ Script generated successfully with', generatedScript.content.length, 'characters');
@@ -221,134 +258,48 @@ ABSOLUTE REQUIREMENTS:
   }
 
   private static createFallbackScript(request: ScriptRequest): GeneratedScript {
-    // Extract key information from the first post
+    // If fallback is needed, show clear error message
+    // This fallback should RARELY be used - it means both API calls failed
     const firstPost = request.posts[0];
-    const platform = firstPost?.platform.toUpperCase() || 'social media';
-    const source = firstPost?.source || 'a community';
+    const platform = firstPost?.platform.toUpperCase() || 'SOCIAL MEDIA';
+    const source = firstPost?.source || 'a community member';
+    const postContent = firstPost?.content || 'Unable to load post content';
     
-    // Extract a topic hint from the post content
-    const postContent = firstPost?.content || '';
-    const words = postContent.split(' ').slice(0, 50).join(' ');
+    // Extract actual content from the post (up to 300 chars for context)
+    const contentPreview = postContent.substring(0, 300);
     
-    // Generate opening based on tone
-    const openings = {
-      professional: `Welcome. Today I want to address an important discussion that recently emerged on ${platform}.`,
-      casual: `Hey everyone! So I came across this really interesting post on ${platform} and I had to talk about it.`,
-      educational: `Hello and welcome! Today we're going to explore an important topic that was recently discussed on ${platform}.`,
-      entertaining: `What's up everyone! You won't believe what I found on ${platform} today - it's actually pretty interesting!`
-    };
-    
-    const closings = {
-      professional: `I hope this analysis has provided valuable insights. Thank you for your time.`,
-      casual: `Alright, that's it from me! Let me know what you think in the comments below!`,
-      educational: `I hope you learned something valuable today. Feel free to ask questions in the comments!`,
-      entertaining: `And that's all folks! Don't forget to like and subscribe if you found this helpful!`
-    };
-    
-    const opening = openings[request.tone] || openings.casual;
-    const closing = closings[request.tone] || closings.casual;
-    
-    // Create content type specific script
-    let scriptContent = '';
-    
-    if (request.contentType === 'video') {
-      scriptContent = `${opening}
-
-A member from ${source} shared their experience: "${words}${postContent.length > 50 ? '...' : ''}"
-
-This resonates with many people facing similar challenges. Let me break down what's really going on here and what you can do about it.
-
-First, it's important to understand the context. When we see discussions like this, there's usually a deeper issue at play. Many people struggle with this exact situation, and you're not alone if you've experienced something similar.
-
-Second, let's talk about practical solutions. Based on common approaches that work well, here are some actionable steps you can take:
-
-Start by identifying the core challenge. What's the real problem here? Once you understand that, you can begin to address it systematically.
-
-Next, look for patterns in your own situation. Does this apply to you? If so, how? Understanding your specific context is crucial.
-
-Finally, take action. Knowledge without action doesn't create change. Start with one small step today.
-
-${closing}`;
-    } else if (request.contentType === 'blog') {
-      scriptContent = `# Understanding the Discussion
-
-${opening}
-
-## The Original Post
-
-Someone on ${source} shared: "${words}${postContent.length > 50 ? '...' : ''}"
-
-This caught my attention because it highlights a challenge many face.
-
-## Why This Matters
-
-When we see discussions like this emerge on platforms like ${platform}, it tells us something important about what people are experiencing. This isn't an isolated incident - it's a common concern that deserves our attention.
-
-## What You Can Do
-
-Here are practical steps to address this:
-
-**1. Recognize the Pattern**
-The first step is acknowledging that this situation exists. You can't solve a problem you don't acknowledge.
-
-**2. Understand Your Context**
-How does this apply to your specific situation? Take a moment to reflect on your own experience.
-
-**3. Take Action**
-Start implementing small changes today. Progress comes from consistent action, not perfect plans.
-
-## Moving Forward
-
-The key is to start somewhere. Don't let perfect be the enemy of good.
-
-${closing}`;
-    } else if (request.contentType === 'social') {
-      scriptContent = `${opening}
-
-Saw this on ${source}: "${words.substring(0, 100)}${words.length > 100 ? '...' : ''}"
-
-This is SO relatable. Here's what I think about it:
-
-→ First, understand you're not alone in this
-→ Second, there are practical ways to address it  
-→ Third, small steps lead to big changes
-
-The key? Start today, not tomorrow.
-
-${closing}`;
-    } else { // email
-      scriptContent = `Subject: Thoughts on [Topic from ${platform}]
-
-${opening}
-
-I recently came across a discussion on ${source} that I thought you'd find valuable:
-
-"${words}${postContent.length > 50 ? '...' : ''}"
-
-This resonated with me because it highlights something many of us face. Here's what I learned:
-
-**Key Insight #1:** Understanding the situation is half the battle. When we recognize patterns, we can address them.
-
-**Key Insight #2:** There are practical solutions available. You don't have to figure everything out alone.
-
-**Key Insight #3:** Taking action, even small steps, creates momentum.
-
-What's your experience with this? I'd love to hear your thoughts.
-
-${closing}`;
-    }
+    // Try to extract key words/topics from the post
+    const words = postContent.toLowerCase().split(/\s+/);
+    const meaningfulWords = words.filter(w => w.length > 5);
+    const possibleTopic = meaningfulWords.slice(0, 3).join(' ') || 'this topic';
     
     return {
-      title: `Insights from ${platform}: ${source} Discussion`,
-      content: scriptContent,
+      title: `Script Generation Unavailable - API Error`,
+      content: `⚠️ We encountered an issue generating your script. This could be due to:
+
+• API rate limits
+• Network connectivity issues  
+• Content moderation filters
+
+The original post was about:
+"${contentPreview}${postContent.length > 300 ? '...' : ''}"
+
+Source: ${source} on ${platform}
+
+Please try again in a few moments, or:
+1. Refresh the page and try again
+2. Try generating a script for a different post
+3. Contact support if the issue persists
+
+We apologize for the inconvenience!`,
       keyPoints: [
-        'Real discussion from community members',
-        'Practical insights you can apply today',
-        'Understanding common challenges and solutions'
+        'Script generation temporarily unavailable',
+        'Please try again shortly',
+        'Contact support if issue persists'
       ],
-      callToAction: `What's your experience with this? Share your thoughts!`,
-      hashtags: [`#${platform.toLowerCase()}`, '#community', '#insights'],
-      estimatedDuration: request.length === 'short' ? '2-3 minutes' : request.length === 'medium' ? '5-7 minutes' : '10-15 minutes'
+      callToAction: 'Try generating again or contact support',
+      hashtags: ['#error', '#tryagain'],
+      estimatedDuration: 'N/A'
     };
   }
 
