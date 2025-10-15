@@ -34,7 +34,7 @@ export class ContentGenerationService {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          model: 'llama-3.1-sonar-small-128k-online',
+          model: 'llama-3.1-sonar-large-128k-chat',
           messages: [
             {
               role: 'system',
