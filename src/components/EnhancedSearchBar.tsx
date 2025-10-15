@@ -99,6 +99,8 @@ export const EnhancedSearchBar: React.FC<EnhancedSearchBarProps> = ({
   const handleCategorySelection = async (categories: ('pain-points' | 'trending-ideas' | 'content-ideas')[]) => {
     if (!selectedSubtopic || categories.length === 0) return;
 
+    // Immediately hide the modal by setting step to 'search'
+    setCurrentStep('search');
     setIsLoading(true);
     setError(null);
 
