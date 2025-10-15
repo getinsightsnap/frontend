@@ -23,14 +23,20 @@ const RelevanceRating: React.FC<RelevanceRatingProps> = ({
   const [hoveredRating, setHoveredRating] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleRatingSubmit = async (newRating: number) => {
     if (disabled || isSubmitting || newRating === rating) return;
 
     setIsSubmitting(true);
+    setError(null);
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001/api'}/ratings/submit`, {
+      const apiUrl = `${import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001/api'}/ratings/submit`;
+      console.log('Submitting rating to:', apiUrl);
+      console.log('Rating data:', { searchQuery, postId, platform, rating: newRating, userId });
+
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -44,15 +50,22 @@ const RelevanceRating: React.FC<RelevanceRatingProps> = ({
         })
       });
 
+      console.log('Rating API response status:', response.status);
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         if (response.status === 503) {
           // Rating system not available
           console.warn('Rating system not available:', errorData.error);
+          setError('Rating system temporarily unavailable');
+          setTimeout(() => setError(null), 3000);
           return;
         }
-        throw new Error(errorData.error || 'Failed to submit rating');
+        throw new Error(errorData.error || `Failed to submit rating (${response.status})`);
       }
+
+      const result = await response.json();
+      console.log('Rating submitted successfully:', result);
 
       setRating(newRating);
       setIsSubmitted(true);
@@ -63,7 +76,9 @@ const RelevanceRating: React.FC<RelevanceRatingProps> = ({
 
     } catch (error) {
       console.error('Rating submission error:', error);
-      // Could add toast notification here
+      const errorMessage = error instanceof Error ? error.message : 'Failed to submit rating';
+      setError(errorMessage);
+      setTimeout(() => setError(null), 5000);
     } finally {
       setIsSubmitting(false);
     }
@@ -150,13 +165,19 @@ const RelevanceRating: React.FC<RelevanceRatingProps> = ({
         </div>
       )}
 
-      {isSubmitted && (
+      {isSubmitted && !error && (
         <span className="text-xs text-green-600 font-medium">
           ✓ Rated
         </span>
       )}
 
-      {!rating && !isSubmitting && (
+      {error && (
+        <span className="text-xs text-red-600 font-medium">
+          ✗ {error}
+        </span>
+      )}
+
+      {!rating && !isSubmitting && !error && (
         <span className="text-xs text-gray-500">
           Rate relevance
         </span>
