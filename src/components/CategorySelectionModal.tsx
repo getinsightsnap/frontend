@@ -1,5 +1,5 @@
-import React from 'react';
-import { X, AlertTriangle, TrendingUp, Lightbulb } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, AlertTriangle, TrendingUp, Lightbulb, Search, Check } from 'lucide-react';
 
 interface CategorySelectionModalProps {
   isOpen: boolean;
@@ -9,7 +9,7 @@ interface CategorySelectionModalProps {
     description: string;
     expandedQuery: string;
   };
-  onSelectCategory: (category: 'pain-points' | 'trending-ideas' | 'content-ideas') => void;
+  onSelectCategory: (categories: ('pain-points' | 'trending-ideas' | 'content-ideas')[]) => void;
 }
 
 export const CategorySelectionModal: React.FC<CategorySelectionModalProps> = ({
@@ -18,7 +18,29 @@ export const CategorySelectionModal: React.FC<CategorySelectionModalProps> = ({
   selectedSubtopic,
   onSelectCategory
 }) => {
+  const [selectedCategories, setSelectedCategories] = useState<('pain-points' | 'trending-ideas' | 'content-ideas')[]>([]);
+
   if (!isOpen) return null;
+
+  const handleCategoryToggle = (categoryId: 'pain-points' | 'trending-ideas' | 'content-ideas') => {
+    setSelectedCategories(prev => 
+      prev.includes(categoryId) 
+        ? prev.filter(id => id !== categoryId)
+        : [...prev, categoryId]
+    );
+  };
+
+  const handleSearch = () => {
+    if (selectedCategories.length > 0) {
+      onSelectCategory(selectedCategories);
+      setSelectedCategories([]); // Reset selection
+    }
+  };
+
+  const handleClose = () => {
+    setSelectedCategories([]); // Reset selection when closing
+    onClose();
+  };
 
   const categories = [
     {
@@ -95,9 +117,14 @@ export const CategorySelectionModal: React.FC<CategorySelectionModalProps> = ({
             <p className="text-sm text-gray-500 mt-1">
               Search: "{selectedSubtopic.expandedQuery}"
             </p>
+            {selectedCategories.length > 0 && (
+              <p className="text-sm text-blue-600 mt-1">
+                {selectedCategories.length} categor{selectedCategories.length === 1 ? 'y' : 'ies'} selected
+              </p>
+            )}
           </div>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="text-gray-400 hover:text-gray-600 transition-colors"
           >
             <X className="w-6 h-6" />
@@ -110,19 +137,37 @@ export const CategorySelectionModal: React.FC<CategorySelectionModalProps> = ({
             {categories.map((category) => {
               const Icon = category.icon;
               const colors = getColorClasses(category.color);
+              const isSelected = selectedCategories.includes(category.id);
               
               return (
                 <div
                   key={category.id}
-                  onClick={() => onSelectCategory(category.id)}
-                  className={`p-6 border-2 rounded-lg cursor-pointer transition-all duration-200 group ${colors.border} hover:shadow-lg`}
+                  onClick={() => handleCategoryToggle(category.id)}
+                  className={`p-6 border-2 rounded-lg cursor-pointer transition-all duration-200 group relative ${
+                    isSelected 
+                      ? `${colors.border} shadow-lg bg-opacity-5` 
+                      : `${colors.border} hover:shadow-lg`
+                  } ${isSelected ? `bg-${category.color}-50` : ''}`}
                 >
+                  {/* Selection indicator */}
+                  {isSelected && (
+                    <div className="absolute top-3 right-3">
+                      <div className={`w-6 h-6 bg-${category.color}-600 rounded-full flex items-center justify-center`}>
+                        <Check className="w-4 h-4 text-white" />
+                      </div>
+                    </div>
+                  )}
+                  
                   <div className="flex flex-col items-center text-center">
-                    <div className={`p-3 rounded-full bg-gray-50 group-hover:bg-opacity-80 transition-colors mb-4`}>
+                    <div className={`p-3 rounded-full transition-colors mb-4 ${
+                      isSelected ? `bg-${category.color}-100` : 'bg-gray-50 group-hover:bg-opacity-80'
+                    }`}>
                       <Icon className={`w-8 h-8 ${colors.icon}`} />
                     </div>
                     
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    <h3 className={`text-lg font-semibold mb-2 ${
+                      isSelected ? colors.accent : 'text-gray-900'
+                    }`}>
                       {category.title}
                     </h3>
                     
@@ -138,11 +183,13 @@ export const CategorySelectionModal: React.FC<CategorySelectionModalProps> = ({
                       ))}
                     </div>
                     
-                    <button
-                      className={`px-4 py-2 text-white rounded-md transition-colors ${colors.button}`}
-                    >
-                      View {category.title}
-                    </button>
+                    <div className={`px-4 py-2 rounded-md transition-colors text-sm font-medium ${
+                      isSelected 
+                        ? `bg-${category.color}-600 text-white` 
+                        : `bg-gray-200 text-gray-700 group-hover:bg-gray-300`
+                    }`}>
+                      {isSelected ? 'Selected' : 'Select'}
+                    </div>
                   </div>
                 </div>
               );
@@ -155,8 +202,29 @@ export const CategorySelectionModal: React.FC<CategorySelectionModalProps> = ({
               💡 Pro Tip
             </h4>
             <p className="text-sm text-blue-800">
-              Choose the category that best matches what you're looking for. You can always search again with a different category to explore other aspects of your topic.
+              Select one or more categories to see relevant insights. You can choose multiple categories to get a comprehensive view of your topic.
             </p>
+          </div>
+          
+          {/* Search Button */}
+          <div className="mt-6 flex justify-center">
+            <button
+              onClick={handleSearch}
+              disabled={selectedCategories.length === 0}
+              className={`flex items-center space-x-2 px-6 py-3 rounded-lg font-medium transition-colors ${
+                selectedCategories.length > 0
+                  ? 'bg-blue-600 text-white hover:bg-blue-700'
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              }`}
+            >
+              <Search className="w-5 h-5" />
+              <span>
+                {selectedCategories.length === 0 
+                  ? 'Select categories to search' 
+                  : `Search ${selectedCategories.length} categor${selectedCategories.length === 1 ? 'y' : 'ies'}`
+                }
+              </span>
+            </button>
           </div>
         </div>
       </div>

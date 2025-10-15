@@ -96,51 +96,64 @@ export const EnhancedSearchBar: React.FC<EnhancedSearchBarProps> = ({
     setCurrentStep('category');
   };
 
-  const handleCategorySelection = async (category: 'pain-points' | 'trending-ideas' | 'content-ideas') => {
-    if (!selectedSubtopic) return;
+  const handleCategorySelection = async (categories: ('pain-points' | 'trending-ideas' | 'content-ideas')[]) => {
+    if (!selectedSubtopic || categories.length === 0) return;
 
     setIsLoading(true);
     setError(null);
 
     try {
-      console.log('🎯 Performing focused search:', {
+      console.log('🎯 Performing focused search for multiple categories:', {
         subtopic: selectedSubtopic.title,
-        category,
+        categories,
         expandedQuery: selectedSubtopic.expandedQuery
       });
 
-      // Step 3: Perform focused search
-      const searchResponse = await SearchService.performFocusedSearch(
-        searchQuery,
-        selectedSubtopic.expandedQuery,
-        category,
-        {
-          platforms: ['reddit', 'x', 'youtube'],
-          timeFilter: 'week',
-          language: 'en'
-        }
+      // Perform searches for each selected category
+      const searchPromises = categories.map(category => 
+        SearchService.performFocusedSearch(
+          searchQuery,
+          selectedSubtopic.expandedQuery,
+          category,
+          {
+            platforms: ['reddit', 'x', 'youtube'],
+            timeFilter: 'week',
+            language: 'en'
+          }
+        )
       );
 
-      if (searchResponse.success) {
-        // Convert to the format expected by ResearchDashboard
-        const formattedResults = {
-          painPoints: searchResponse.data.metadata.category === 'pain-points' ? searchResponse.data.results : [],
-          trendingIdeas: searchResponse.data.metadata.category === 'trending-ideas' ? searchResponse.data.results : [],
-          contentIdeas: searchResponse.data.metadata.category === 'content-ideas' ? searchResponse.data.results : [],
-          metadata: searchResponse.data.metadata
-        };
-        
-        onSearchComplete(formattedResults, searchResponse.data.metadata.expandedQuery);
-        console.log('✅ Enhanced search complete:', {
-          results: searchResponse.data.results.length,
-          relevance: searchResponse.data.metadata.relevanceScore
-        });
-        
-        // Reset state
-        resetSearch();
-      } else {
-        throw new Error('Focused search failed');
-      }
+      const searchResponses = await Promise.all(searchPromises);
+      
+      // Combine results from all categories
+      const formattedResults = {
+        painPoints: [],
+        trendingIdeas: [],
+        contentIdeas: [],
+        metadata: {
+          expandedQuery: selectedSubtopic.expandedQuery,
+          selectedCategories: categories,
+          totalResults: 0
+        }
+      };
+
+      searchResponses.forEach((response, index) => {
+        if (response.success) {
+          const category = categories[index];
+          formattedResults[category === 'pain-points' ? 'painPoints' : 
+                          category === 'trending-ideas' ? 'trendingIdeas' : 'contentIdeas'] = response.data.results;
+          formattedResults.metadata.totalResults += response.data.results.length;
+        }
+      });
+      
+      onSearchComplete(formattedResults, selectedSubtopic.expandedQuery);
+      console.log('✅ Enhanced search complete:', {
+        categories: categories.length,
+        totalResults: formattedResults.metadata.totalResults
+      });
+      
+      // Reset state and hide modal
+      resetSearch();
     } catch (err) {
       console.error('❌ Focused search error:', err);
       setError(err instanceof Error ? err.message : 'Search failed');
