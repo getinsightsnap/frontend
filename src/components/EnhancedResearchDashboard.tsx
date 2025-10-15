@@ -3,7 +3,7 @@ import { Search, Loader2, ArrowLeft, Sparkles } from 'lucide-react';
 import { SearchService, Subtopic } from '../services/searchService';
 import { QueryExpansionModal } from './QueryExpansionModal';
 import { CategorySelectionModal } from './CategorySelectionModal';
-import { ResultsPage } from './ResultsPage';
+import ResultsPage from './ResultsPage';
 
 interface EnhancedResearchDashboardProps {
   userTier?: 'free' | 'standard' | 'pro';
