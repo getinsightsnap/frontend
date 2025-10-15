@@ -24,6 +24,7 @@ import { SearchService, SearchResponse } from '../services/searchService';
 import { SearchParams, AnalyzedResults, SocialPost } from '../services/apiConfig';
 import { SearchHistoryService } from '../services/searchHistoryService';
 import { MetaPixelService } from '../services/metaPixelService';
+import { EnhancedSearchBar } from './EnhancedSearchBar';
 
 interface ResearchDashboardProps {
   onHome: () => void;
@@ -497,34 +498,13 @@ const ResearchDashboard: React.FC<ResearchDashboardProps> = ({
         {/* Search Section */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
           <div className="space-y-6">
-            {/* Search Input */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                What insights are you looking for?
-              </label>
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
-                <p className="text-sm text-blue-800">
-                  <strong>💡 Tip:</strong> Search with <strong>one keyword at a time</strong> for best results (e.g., "AI marketing" instead of "AI marketing tools for social media")
-                </p>
-              </div>
-              <div className="relative">
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="e.g., AI marketing, content creation, productivity tips..."
-                  className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                />
-                <button
-                  onClick={handleSearch}
-                  disabled={!searchQuery.trim() || isLoading}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  {isLoading ? <Loader className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}
-                </button>
-              </div>
-            </div>
+            {/* Enhanced Search Input with Virtual Keyboard */}
+            <EnhancedSearchBar
+              onSearchComplete={onShowResults}
+              isLoading={isLoading}
+              setIsLoading={setIsLoading}
+              userTier={user?.subscription_tier || 'free'}
+            />
 
 
             {/* Filters */}
