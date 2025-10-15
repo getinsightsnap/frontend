@@ -61,6 +61,8 @@ For each concept, provide:
 - A description of what insights this would reveal
 - Search terms that would find real social media posts about this aspect
 
+IMPORTANT: Respond with ONLY a valid JSON array. No explanations, no markdown, no extra text.
+
 Format as JSON array:
 [
   {
@@ -77,7 +79,9 @@ EXAMPLES of good vs bad concepts:
 - BAD: "Tools & Resources" (generic business category)  
 - GOOD: "Ring Shopping Stories" (specific, personal, relatable)
 
-Generate concepts that would make people think "Yes, I want to see what others say about THIS specific aspect!"`;
+Generate concepts that would make people think "Yes, I want to see what others say about THIS specific aspect!"
+
+RESPOND WITH ONLY THE JSON ARRAY:`;
 
       const response = await axios.post(`${this.baseUrl}/chat/completions`, {
         model: 'llama-3.1-sonar-large-128k-chat',
@@ -99,16 +103,29 @@ Generate concepts that would make people think "Yes, I want to see what others s
 
       const aiResponse = response.data.choices[0]?.message?.content;
       if (!aiResponse) {
+        logger.warn('❌ No AI response content received');
         return this.getFallbackQueryExpansion(query);
       }
 
-      // Parse JSON response
+      logger.info(`📝 AI Response: ${aiResponse.substring(0, 200)}...`);
+
+      // Parse JSON response - look for JSON array in the response
       const jsonMatch = aiResponse.match(/\[[\s\S]*\]/);
       if (!jsonMatch) {
+        logger.warn('❌ No JSON array found in AI response, falling back to patterns');
+        logger.info(`🔍 Full AI response: ${aiResponse}`);
         return this.getFallbackQueryExpansion(query);
       }
 
-      const subtopics = JSON.parse(jsonMatch[0]);
+      let subtopics;
+      try {
+        subtopics = JSON.parse(jsonMatch[0]);
+        logger.info(`✅ Successfully parsed ${subtopics.length} AI-generated focus areas`);
+      } catch (parseError) {
+        logger.error('❌ Failed to parse AI JSON response:', parseError.message);
+        logger.info(`🔍 JSON content: ${jsonMatch[0]}`);
+        return this.getFallbackQueryExpansion(query);
+      }
       
       // Add custom option
       subtopics.push({
