@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Search, 
   TrendingUp as Trending, 
   MessageSquare, 
   Lightbulb, 
@@ -25,6 +24,7 @@ import { SearchParams, AnalyzedResults, SocialPost } from '../services/apiConfig
 import { SearchHistoryService } from '../services/searchHistoryService';
 import { MetaPixelService } from '../services/metaPixelService';
 import { EnhancedSearchBar } from './EnhancedSearchBar';
+import { PlatformStatsBar } from './PlatformStatsBar';
 
 interface ResearchDashboardProps {
   onHome: () => void;
@@ -193,90 +193,7 @@ const ResearchDashboard: React.FC<ResearchDashboardProps> = ({
   };
 
   // Removed problematic useEffect that was causing infinite loading
-
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) return;
-
-    // Check search limits based on user tier (for both logged-in and non-logged-in users)
-    if (searchCount >= tierLimits.maxSearches) {
-      onSearchLimitReached();
-      return;
-    }
-
-    // Clear any cached results from sessionStorage before new search
-    // This ensures fresh results even for repeated searches with same keyword
-    sessionStorage.removeItem('currentResults');
-    sessionStorage.removeItem('currentSearchQuery');
-    console.log('🧹 Cleared cached results before new search');
-
-    setIsLoading(true);
-    setError(null);
-    setResults(null); // Clear previous results immediately
-
-    try {
-      const searchParams: SearchParams = {
-        query: searchQuery.trim(),
-        language: selectedLanguage,
-        timeFilter,
-        platforms: selectedPlatforms
-      };
-
-      console.log('🔍 Performing fresh search with params:', searchParams);
-      
-      const searchStartTime = Date.now();
-      const searchResponse: SearchResponse = await SearchService.performSearch(searchParams, { userTier });
-      const searchDuration = Date.now() - searchStartTime;
-      
-      const searchResults = searchResponse.results;
-      const noResultsMessage = searchResponse.metadata?.noResultsMessage;
-      
-      console.log('📨 Search response metadata:', searchResponse.metadata);
-      console.log('💬 No results message:', noResultsMessage);
-      
-      setResults(searchResults);
-      
-      // Track search in database
-      await SearchHistoryService.trackSearch({
-        user_id: user?.id,
-        search_query: searchQuery.trim(),
-        platforms: selectedPlatforms,
-        language: selectedLanguage,
-        time_filter: timeFilter,
-        user_tier: userTier,
-        total_results: (searchResults.painPoints?.length || 0) + 
-                      (searchResults.trendingIdeas?.length || 0) + 
-                      (searchResults.contentIdeas?.length || 0),
-        pain_points_count: searchResults.painPoints?.length || 0,
-        trending_ideas_count: searchResults.trendingIdeas?.length || 0,
-        content_ideas_count: searchResults.contentIdeas?.length || 0,
-        user_email: user?.email,
-        is_authenticated: !!user,
-        search_duration_ms: searchDuration,
-        platforms_succeeded: searchResponse.metadata?.platforms_succeeded || selectedPlatforms,
-        platforms_failed: searchResponse.metadata?.platforms_failed || []
-      });
-      
-      // Increment search count
-      onSearchPerformed();
-      
-      // Call the callback to show results with noResultsMessage
-      onShowResults(searchResults, searchQuery, noResultsMessage);
-      
-      // Don't set error here - the intelligent message will be shown on ResultsPage
-      // The error state is only for actual errors, not for empty results
-    } catch (err: any) {
-      console.error('Search error:', err);
-      
-      // Display user-friendly error messages
-      const errorMessage = err?.message || 'An error occurred while searching. Please try again.';
-      setError(errorMessage);
-      
-      // Don't increment search count on error
-      console.warn('⚠️ Search failed, not incrementing search count');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // handleSearch function removed - now handled by EnhancedSearchBar
 
 
   const handlePlatformToggle = (platformId: string) => {
@@ -470,6 +387,9 @@ const ResearchDashboard: React.FC<ResearchDashboardProps> = ({
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        {/* Platform Stats Bar */}
+        <PlatformStatsBar />
 
         {/* Search Section */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
