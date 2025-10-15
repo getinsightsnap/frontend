@@ -107,9 +107,20 @@ export const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({ onTextChange, 
   };
 
   const transferToSearch = () => {
-    onTextChange(virtualText);
+    const textToTransfer = virtualText;
+    console.log('🔤 Transferring virtual keyboard text:', textToTransfer);
+    onTextChange(textToTransfer);
     setVirtualText('');
     setShowKeyboard(false);
+    
+    // Auto-focus the search input after transferring text
+    setTimeout(() => {
+      const searchInput = document.querySelector('input[type="text"]') as HTMLInputElement;
+      if (searchInput) {
+        searchInput.focus();
+        console.log('✅ Search input focused with text:', textToTransfer);
+      }
+    }, 100);
   };
 
   const currentKeyboardLanguage = languages.find(lang => lang.code === keyboardLanguage);

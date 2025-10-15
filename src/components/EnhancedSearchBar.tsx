@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Loader2, Sparkles, ArrowLeft } from 'lucide-react';
 import { SearchService, Subtopic } from '../services/searchService';
 import { QueryExpansionModal } from './QueryExpansionModal';
@@ -20,6 +20,13 @@ export const EnhancedSearchBar: React.FC<EnhancedSearchBarProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [error, setError] = useState<string | null>(null);
+
+  // Debug: Log when searchQuery changes
+  useEffect(() => {
+    if (searchQuery) {
+      console.log('🔍 Search query updated to:', searchQuery);
+    }
+  }, [searchQuery]);
   
   // Multi-step search state
   const [currentStep, setCurrentStep] = useState<'search' | 'expansion' | 'category'>('search');
