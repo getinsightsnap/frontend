@@ -405,8 +405,8 @@ const ResultsPage: React.FC<ResultsPageProps> = ({
 
         {/* Results Grid - Column Layout */}
         <div className="space-y-8 mb-8">
-          {/* Pain Points */}
-          {renderResultCard(
+          {/* Only show category boxes that have been selected (have results or metadata indicates selection) */}
+          {(results.painPoints.length > 0 || results.metadata?.selectedCategories?.includes('pain-points')) && renderResultCard(
             'Pain Points',
             <MessageSquare className="w-6 h-6" />,
             results.painPoints,
@@ -414,8 +414,7 @@ const ResultsPage: React.FC<ResultsPageProps> = ({
             'painPoints'
           )}
 
-          {/* Trending Ideas */}
-          {renderResultCard(
+          {(results.trendingIdeas.length > 0 || results.metadata?.selectedCategories?.includes('trending-ideas')) && renderResultCard(
             'Trending Ideas',
             <TrendingUp className="w-6 h-6" />,
             results.trendingIdeas,
@@ -423,8 +422,7 @@ const ResultsPage: React.FC<ResultsPageProps> = ({
             'trendingIdeas'
           )}
 
-          {/* Content Ideas */}
-          {renderResultCard(
+          {(results.contentIdeas.length > 0 || results.metadata?.selectedCategories?.includes('content-ideas')) && renderResultCard(
             'Content Ideas',
             <Lightbulb className="w-6 h-6" />,
             results.contentIdeas,
@@ -433,28 +431,38 @@ const ResultsPage: React.FC<ResultsPageProps> = ({
           )}
         </div>
 
-        {/* Summary Stats */}
+        {/* Summary Stats - Only show selected categories */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 mb-8">
           <h3 className="text-xl font-semibold text-gray-900 mb-6">Summary</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            <div className="text-center">
-              <div className="text-3xl font-bold text-red-600">
-                {results.painPoints.length}
+          <div className={`grid gap-6 ${
+            (results.metadata?.selectedCategories?.length || 3) === 1 ? 'grid-cols-1' :
+            (results.metadata?.selectedCategories?.length || 3) === 2 ? 'grid-cols-2' :
+            'grid-cols-2 md:grid-cols-4'
+          }`}>
+            {(results.painPoints.length > 0 || results.metadata?.selectedCategories?.includes('pain-points')) && (
+              <div className="text-center">
+                <div className="text-3xl font-bold text-red-600">
+                  {results.painPoints.length}
+                </div>
+                <div className="text-base text-gray-600">Pain Points</div>
               </div>
-              <div className="text-base text-gray-600">Pain Points</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-green-600">
-                {results.trendingIdeas.length}
+            )}
+            {(results.trendingIdeas.length > 0 || results.metadata?.selectedCategories?.includes('trending-ideas')) && (
+              <div className="text-center">
+                <div className="text-3xl font-bold text-green-600">
+                  {results.trendingIdeas.length}
+                </div>
+                <div className="text-base text-gray-600">Trending Ideas</div>
               </div>
-              <div className="text-base text-gray-600">Trending Ideas</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-purple-600">
-                {results.contentIdeas.length}
+            )}
+            {(results.contentIdeas.length > 0 || results.metadata?.selectedCategories?.includes('content-ideas')) && (
+              <div className="text-center">
+                <div className="text-3xl font-bold text-purple-600">
+                  {results.contentIdeas.length}
+                </div>
+                <div className="text-base text-gray-600">Content Ideas</div>
               </div>
-              <div className="text-base text-gray-600">Content Ideas</div>
-            </div>
+            )}
             <div className="text-center">
               <div className="text-3xl font-bold text-indigo-600">
                 {results.painPoints.length + results.trendingIdeas.length + results.contentIdeas.length}
