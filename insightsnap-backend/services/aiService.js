@@ -54,7 +54,7 @@ Make each focus area specific to "${query}". Avoid generic categories.`;
       let response;
       try {
         response = await axios.post(`${this.baseUrl}/chat/completions`, {
-          model: 'sonar',
+          model: 'sonar-pro',
           messages: [
             {
               role: 'user',
