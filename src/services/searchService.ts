@@ -19,6 +19,39 @@ export interface SearchResponse {
   };
 }
 
+export interface QueryExpansionResponse {
+  success: boolean;
+  data: {
+    originalQuery: string;
+    subtopics: Subtopic[];
+  };
+}
+
+export interface Subtopic {
+  title: string;
+  description: string;
+  expandedQuery: string;
+  category: string;
+  isCustom?: boolean;
+}
+
+export interface FocusedSearchResponse {
+  success: boolean;
+  data: {
+    results: any[];
+    metadata: {
+      totalPosts: number;
+      relevantPosts: number;
+      category: string;
+      expandedQuery: string;
+      originalQuery: string;
+      platforms: string[];
+      duration: number;
+      relevanceScore: number;
+    };
+  };
+}
+
 export class SearchService {
   private static readonly API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001/api';
 
@@ -168,5 +201,88 @@ export class SearchService {
       perPlatform: limits.perPlatform,
       tierLimits: limits
     };
+  }
+
+  // New method: Generate query expansion options
+  static async generateQueryExpansion(query: string): Promise<QueryExpansionResponse> {
+    try {
+      console.log('🔍 Generating query expansion for:', query);
+      
+      const response = await fetch(`${this.API_BASE_URL}/search/expand-query`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ query })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Query expansion failed: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('✅ Query expansion generated:', result.data.subtopics.length, 'subtopics');
+      
+      return result;
+
+    } catch (error) {
+      console.error('❌ Query expansion error:', error);
+      throw error;
+    }
+  }
+
+  // New method: Perform focused search with specific subtopic and category
+  static async performFocusedSearch(
+    originalQuery: string,
+    expandedQuery: string,
+    selectedCategory: 'pain-points' | 'trending-ideas' | 'content-ideas',
+    options?: {
+      platforms?: string[];
+      timeFilter?: string;
+      language?: string;
+    }
+  ): Promise<FocusedSearchResponse> {
+    try {
+      console.log('🎯 Performing focused search:', {
+        originalQuery,
+        expandedQuery,
+        selectedCategory,
+        options
+      });
+      
+      const response = await fetch(`${this.API_BASE_URL}/search/focused-search`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          originalQuery,
+          expandedQuery,
+          selectedCategory,
+          platforms: options?.platforms || ['reddit', 'x', 'youtube'],
+          timeFilter: options?.timeFilter || 'week',
+          language: options?.language || 'en'
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Focused search failed: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('✅ Focused search complete:', {
+        results: result.data.results.length,
+        relevance: result.data.metadata.relevanceScore,
+        category: result.data.metadata.category
+      });
+      
+      return result;
+
+    } catch (error) {
+      console.error('❌ Focused search error:', error);
+      throw error;
+    }
   }
 }
