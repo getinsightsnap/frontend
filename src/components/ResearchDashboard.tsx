@@ -470,30 +470,6 @@ const ResearchDashboard: React.FC<ResearchDashboardProps> = ({
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Hero Context Section */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">
-            Discover What Your Audience Really Wants
-          </h1>
-          <p className="text-lg text-gray-600 max-w-3xl mx-auto mb-6">
-            Search any topic and get AI-powered insights from Reddit, X (Twitter), and YouTube comments. 
-            Uncover pain points, trending discussions, and content ideas that resonate with real people.
-          </p>
-          <div className="flex items-center justify-center gap-8 text-sm text-gray-500">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              <span>Real-time data</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-              <span>AI-powered analysis</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-              <span>Actionable insights</span>
-            </div>
-          </div>
-        </div>
 
         {/* Search Section */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">

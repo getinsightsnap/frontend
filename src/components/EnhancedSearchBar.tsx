@@ -171,9 +171,9 @@ export const EnhancedSearchBar: React.FC<EnhancedSearchBarProps> = ({
         <label className="block text-sm font-medium text-gray-700 mb-2">
           What insights are you looking for?
         </label>
-        <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-3 mb-3">
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
           <p className="text-sm text-blue-800">
-            <strong>🎯 Enhanced AI Search:</strong> Get more relevant results with our multi-step AI-powered search that helps you find exactly what you need.
+            <strong>💡 Tip:</strong> Search with <strong>one keyword at a time</strong> for best results (e.g., "AI marketing" instead of "AI marketing tools for social media")
           </p>
         </div>
         
@@ -242,18 +242,6 @@ export const EnhancedSearchBar: React.FC<EnhancedSearchBarProps> = ({
           </div>
         )}
 
-        {/* Current Step Info */}
-        {currentStep === 'search' && (
-          <div className="mt-3 bg-blue-50 border border-blue-200 rounded-lg p-3">
-            <h3 className="font-medium text-blue-900 mb-2">🎯 Enhanced AI Search</h3>
-            <ul className="text-sm text-blue-800 space-y-1">
-              <li>• AI generates specific focus areas for your topic</li>
-              <li>• Choose exactly what type of insights you want</li>
-              <li>• Get highly relevant, filtered results</li>
-              <li>• No more irrelevant posts like stock trading or horror stories!</li>
-            </ul>
-          </div>
-        )}
 
         {/* Back Button */}
         {currentStep !== 'search' && (
