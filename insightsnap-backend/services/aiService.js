@@ -28,8 +28,11 @@ class AIService {
     try {
       const apiKey = process.env.PERPLEXITY_API_KEY;
       if (!apiKey) {
+        logger.warn('No Perplexity API key - using fallback query expansion');
         return this.getFallbackQueryExpansion(query);
       }
+
+      logger.info(`🤖 Generating AI query expansion for: "${query}"`);
 
       const prompt = `You are an expert social media researcher. Your task is to understand the keyword "${query}" and generate 6-8 specific, relevant concepts that people actually discuss on social platforms.
 
@@ -119,7 +122,8 @@ Generate concepts that would make people think "Yes, I want to see what others s
       return subtopics;
 
     } catch (error) {
-      logger.error('Error generating query expansion:', error);
+      logger.error(`❌ AI query expansion failed for "${query}":`, error.message);
+      logger.info('🔄 Falling back to hardcoded patterns');
       return this.getFallbackQueryExpansion(query);
     }
   }
@@ -154,6 +158,15 @@ Generate concepts that would make people think "Yes, I want to see what others s
         { title: "Nervous Stories", description: "Being nervous and anxiety experiences", expandedQuery: `${query} nervous anxious scared worried`, category: "experiences" },
         { title: "Proposal Planning", description: "Planning help and advice questions", expandedQuery: `${query} planning help advice how to`, category: "questions" },
         { title: "Surprise Stories", description: "Surprise proposal moments and reactions", expandedQuery: `${query} surprise reaction shocked cried`, category: "success" }
+      );
+    } else if (lowerQuery.includes('government') || lowerQuery.includes('political') || lowerQuery.includes('politics')) {
+      subtopics.push(
+        { title: "Government Services", description: "Experiences with government services and bureaucracy", expandedQuery: `${query} services bureaucracy dmv passport visa`, category: "experiences" },
+        { title: "Political Issues", description: "Current political problems and controversies", expandedQuery: `${query} problems issues controversy scandal`, category: "problems" },
+        { title: "Policy Success", description: "Successful government policies and programs", expandedQuery: `${query} success worked policy program effective`, category: "success" },
+        { title: "Voting & Elections", description: "Voting experiences and election discussions", expandedQuery: `${query} voting election ballot democracy`, category: "experiences" },
+        { title: "Government Help", description: "Questions about government assistance and programs", expandedQuery: `${query} help assistance benefits programs how to`, category: "questions" },
+        { title: "Government Tools", description: "Government websites, apps, and digital services", expandedQuery: `${query} website app digital portal online`, category: "tools" }
       );
     } else {
       // Generic social media research subtopics
