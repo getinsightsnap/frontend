@@ -1,27 +1,13 @@
 import { createClient } from '@supabase/supabase-js'
 
-// Get environment variables with fallbacks for both Vite and CRA
-const getEnvVar = (key: string): string => {
-  // Try Vite first (import.meta.env)
-  if (typeof import.meta !== 'undefined' && import.meta.env) {
-    return import.meta.env[`VITE_${key}`] || '';
-  }
-  // Fallback to Create React App (process.env)
-  if (typeof process !== 'undefined' && process.env) {
-    return process.env[`REACT_APP_${key}`] || '';
-  }
-  // Fallback to empty string
-  return '';
-};
+// Direct Supabase credentials (no environment variables needed)
+const supabaseUrl = 'https://gytwrtduuauffcrvnlza.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5dHdydGR1dWF1ZmZjcnZubHphIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY1NzUyMDAsImV4cCI6MjA3MjE1MTIwMH0.1YUii8tAfXf7sHvKIE317uawYux6U_Ow74bqCUXkyzw';
 
-const supabaseUrl = getEnvVar('SUPABASE_URL');
-const supabaseAnonKey = getEnvVar('SUPABASE_ANON_KEY');
+console.log('Supabase URL:', supabaseUrl);
+console.log('Supabase Key (first 20 chars):', supabaseAnonKey.substring(0, 20) + '...');
 
-// Use actual Supabase credentials
-const actualUrl = 'https://gytwrtduuauffcrvnlza.supabase.co';
-const actualKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5dHdydGR1dWF1ZmZjcnZubHphIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY1NzUyMDAsImV4cCI6MjA3MjE1MTIwMH0.1YUii8tAfXf7sHvKIE317uawYux6U_Ow74bqCUXkyzw';
-
-export const supabase = createClient(actualUrl, actualKey)
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Database types
 export interface User {
