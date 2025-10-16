@@ -10,6 +10,7 @@ export interface PlatformStats {
 export class StatsService {
   /**
    * Get real-time platform statistics
+   * Version: 2.0 - Connected to real database
    */
   static async getPlatformStats(): Promise<PlatformStats> {
     try {
