@@ -104,9 +104,9 @@ export const CategorySelectionModal: React.FC<CategorySelectionModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-hidden">
+      <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b">
+        <div className="flex items-center justify-between p-6 border-b flex-shrink-0">
           <div>
             <h2 className="text-2xl font-bold text-gray-900">
               What would you like to see?
@@ -131,8 +131,8 @@ export const CategorySelectionModal: React.FC<CategorySelectionModalProps> = ({
           </button>
         </div>
 
-        {/* Content */}
-        <div className="p-6">
+        {/* Content - Scrollable */}
+        <div className="p-6 overflow-y-auto flex-1">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {categories.map((category) => {
               const Icon = category.icon;
@@ -143,7 +143,7 @@ export const CategorySelectionModal: React.FC<CategorySelectionModalProps> = ({
                 <div
                   key={category.id}
                   onClick={() => handleCategoryToggle(category.id)}
-                  className={`p-6 border-2 rounded-lg cursor-pointer transition-all duration-200 group relative ${
+                  className={`p-6 border-2 rounded-lg cursor-pointer transition-all duration-200 group relative flex flex-col ${
                     isSelected 
                       ? `${colors.border} shadow-lg bg-opacity-5` 
                       : `${colors.border} hover:shadow-lg`
@@ -158,7 +158,7 @@ export const CategorySelectionModal: React.FC<CategorySelectionModalProps> = ({
                     </div>
                   )}
                   
-                  <div className="flex flex-col items-center text-center">
+                  <div className="flex flex-col items-center text-center flex-1">
                     <div className={`p-3 rounded-full transition-colors mb-4 ${
                       isSelected ? `bg-${category.color}-100` : 'bg-gray-50 group-hover:bg-opacity-80'
                     }`}>
@@ -175,7 +175,7 @@ export const CategorySelectionModal: React.FC<CategorySelectionModalProps> = ({
                       {category.description}
                     </p>
                     
-                    <div className="space-y-1 mb-4">
+                    <div className="space-y-1 mb-4 flex-1">
                       {category.examples.map((example, index) => (
                         <div key={index} className="text-xs text-gray-500">
                           • {example}
@@ -183,7 +183,7 @@ export const CategorySelectionModal: React.FC<CategorySelectionModalProps> = ({
                       ))}
                     </div>
                     
-                    <div className={`px-4 py-2 rounded-md transition-colors text-sm font-medium ${
+                    <div className={`px-4 py-2 rounded-md transition-colors text-sm font-medium mt-auto ${
                       isSelected 
                         ? `bg-${category.color}-600 text-white` 
                         : `bg-gray-200 text-gray-700 group-hover:bg-gray-300`
