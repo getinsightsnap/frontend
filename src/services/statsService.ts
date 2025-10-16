@@ -13,24 +13,32 @@ export class StatsService {
    */
   static async getPlatformStats(): Promise<PlatformStats> {
     try {
+      console.log('🔍 StatsService: Fetching platform stats...');
+      
       // Get total searches count
-      const { count: totalSearches } = await supabase
+      const { count: totalSearches, error: searchError } = await supabase
         .from('search_history')
         .select('*', { count: 'exact', head: true });
+      
+      console.log('📊 Total searches query result:', { count: totalSearches, error: searchError });
 
       // Get registered users count (users who have searched at least once)
-      const { data: registeredUsersData } = await supabase
+      const { data: registeredUsersData, error: usersError } = await supabase
         .from('users')
         .select('id', { count: 'exact' })
         .gt('search_count', 0);
+      
+      console.log('👥 Registered users query result:', { count: registeredUsersData?.length, error: usersError });
 
       // Get searches from today
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      const { count: searchesToday } = await supabase
+      const { count: searchesToday, error: todayError } = await supabase
         .from('search_history')
         .select('*', { count: 'exact', head: true })
         .gte('created_at', today.toISOString());
+      
+      console.log('📅 Today searches query result:', { count: searchesToday, error: todayError });
 
       // Get top 5 keywords (most searched)
       const { data: searchHistoryData } = await supabase
