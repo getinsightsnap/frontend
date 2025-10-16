@@ -10,46 +10,30 @@ export interface PlatformStats {
 export class StatsService {
   /**
    * Get real-time platform statistics
-   * Version: 2.0 - Connected to real database
    */
   static async getPlatformStats(): Promise<PlatformStats> {
     try {
-      console.log('🔍 Fetching platform stats...');
-      
       // Get total searches count
-      const { count: totalSearches, error: totalSearchesError } = await supabase
+      const { count: totalSearches } = await supabase
         .from('search_history')
         .select('*', { count: 'exact', head: true });
-      
-      console.log('📊 Total searches result:', { count: totalSearches, error: totalSearchesError });
-      console.log('📊 Total searches COUNT VALUE:', totalSearches);
 
       // Get registered users count (users who have searched at least once)
-      // Since many user_id entries are NULL, let's count unique non-null user_ids
-      const { data: registeredUsersData, error: usersError } = await supabase
+      const { data: registeredUsersData } = await supabase
         .from('search_history')
         .select('user_id')
         .not('user_id', 'is', null);
       
-      console.log('👥 Registered users data:', { data: registeredUsersData, error: usersError });
-      console.log('👥 Registered users ARRAY LENGTH:', registeredUsersData?.length);
-      console.log('👥 Registered users FIRST 3:', registeredUsersData?.slice(0, 3));
-      
       // Count unique users
       const uniqueUsers = new Set(registeredUsersData?.map(item => item.user_id) || []);
-      console.log('👥 Unique users count:', uniqueUsers.size);
-      console.log('👥 Unique users SET:', Array.from(uniqueUsers).slice(0, 5));
 
       // Get searches from today
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      const { count: searchesToday, error: todayError } = await supabase
+      const { count: searchesToday } = await supabase
         .from('search_history')
         .select('*', { count: 'exact', head: true })
         .gte('created_at', today.toISOString());
-      
-      console.log('📅 Today searches result:', { count: searchesToday, error: todayError, date: today.toISOString() });
-      console.log('📅 Today searches COUNT VALUE:', searchesToday);
 
       // Get top 5 keywords (most searched)
       const { data: searchHistoryData } = await supabase
@@ -71,15 +55,12 @@ export class StatsService {
         .sort((a, b) => b.count - a.count)
         .slice(0, 5);
 
-      const result = {
+      return {
         totalSearches: totalSearches || 0,
         registeredUsers: uniqueUsers.size || 0,
         searchesToday: searchesToday || 0,
         topKeywords
       };
-      
-      console.log('✅ Final stats result:', result);
-      return result;
     } catch (error) {
       console.error('Error fetching platform stats:', error);
       // Return default values on error
