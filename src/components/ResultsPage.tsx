@@ -22,6 +22,15 @@ import { MetaPixelService } from '../services/metaPixelService';
 interface ResultsPageProps {
   results: AnalyzedResults;
   searchQuery: string;
+  metadata?: {
+    noRelevantContent?: boolean;
+    message?: string;
+    availablePosts?: number;
+    totalPosts?: number;
+    category?: string;
+    expandedQuery?: string;
+    [key: string]: any;
+  };
   noResultsMessage?: {
     title: string;
     message: string;
@@ -50,6 +59,7 @@ interface ResultsPageProps {
 const ResultsPage: React.FC<ResultsPageProps> = ({
   results,
   searchQuery,
+  metadata,
   noResultsMessage,
   onBack,
   onHome,
@@ -395,6 +405,51 @@ const ResultsPage: React.FC<ResultsPageProps> = ({
                   <div className="bg-blue-100 rounded-lg p-3 mt-4">
                     <p className="text-blue-800 text-sm">
                       <strong>💡 Tip:</strong> {noResultsMessage.tip}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* No Relevant Content Message */}
+        {metadata?.noRelevantContent && (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 mb-8">
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0">
+                <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
+                  <Sparkles className="w-5 h-5 text-amber-600" />
+                </div>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-amber-900 mb-2">
+                  🔍 No Relevant Content Found
+                </h3>
+                <p className="text-amber-800 mb-4">
+                  {metadata.message || `We couldn't find enough relevant content for "${metadata.expandedQuery || searchQuery}" in the current time period.`}
+                </p>
+                
+                <div className="space-y-3">
+                  <div className="bg-amber-100 rounded-lg p-3">
+                    <p className="text-amber-800 text-sm">
+                      <strong>📊 Search Stats:</strong> Found {metadata.availablePosts || 0} relevant posts out of {metadata.totalPosts || 0} total posts analyzed.
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-medium text-amber-900 mb-2">Suggestions:</h4>
+                    <ul className="list-disc list-inside space-y-1 text-amber-800 text-sm">
+                      <li>Try a different focus area or search term</li>
+                      <li>Expand your search to a longer time period</li>
+                      <li>Use more general keywords instead of very specific ones</li>
+                      <li>Try searching for related topics or synonyms</li>
+                    </ul>
+                  </div>
+                  
+                  <div className="bg-amber-100 rounded-lg p-3 mt-4">
+                    <p className="text-amber-800 text-sm">
+                      <strong>💡 Tip:</strong> Sometimes very specific searches have limited content. Try broadening your search terms to find more relevant results.
                     </p>
                   </div>
                 </div>
