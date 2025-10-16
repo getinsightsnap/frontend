@@ -14,6 +14,10 @@ export class StatsService {
   static async getPlatformStats(): Promise<PlatformStats> {
     try {
       console.log('🔍 StatsService: Fetching platform stats...');
+      console.log('🔗 Supabase client info:', {
+        url: supabase.supabaseUrl?.substring(0, 30) + '...',
+        hasKey: !!supabase.supabaseKey
+      });
       
       // Get total searches count
       const { count: totalSearches, error: searchError } = await supabase
@@ -23,12 +27,20 @@ export class StatsService {
       console.log('📊 Total searches query result:', { count: totalSearches, error: searchError });
 
       // Get registered users count (users who have searched at least once)
+      // Since many user_id entries are NULL, let's count unique non-null user_ids
       const { data: registeredUsersData, error: usersError } = await supabase
-        .from('users')
-        .select('id', { count: 'exact' })
-        .gt('search_count', 0);
+        .from('search_history')
+        .select('user_id')
+        .not('user_id', 'is', null);
       
-      console.log('👥 Registered users query result:', { count: registeredUsersData?.length, error: usersError });
+      // Count unique users
+      const uniqueUsers = new Set(registeredUsersData?.map(item => item.user_id) || []);
+      
+      console.log('👥 Registered users query result:', { 
+        totalRecords: registeredUsersData?.length, 
+        uniqueUsers: uniqueUsers.size, 
+        error: usersError 
+      });
 
       // Get searches from today
       const today = new Date();
@@ -62,7 +74,7 @@ export class StatsService {
 
       return {
         totalSearches: totalSearches || 0,
-        registeredUsers: registeredUsersData?.length || 0,
+        registeredUsers: uniqueUsers.size || 0,
         searchesToday: searchesToday || 0,
         topKeywords
       };
