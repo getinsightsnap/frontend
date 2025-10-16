@@ -1,9 +1,9 @@
 import { supabase } from '../lib/supabase';
 
 export interface PlatformStats {
-  totalSearches: number;
-  activeUsers: number;
-  searchesToday: number;
+  totalSearches: number; // Lifetime total searches
+  registeredUsers: number; // Users who have ever performed a search
+  searchesToday: number; // Searches performed today
   topKeywords: { keyword: string; count: number }[];
 }
 
@@ -18,8 +18,8 @@ export class StatsService {
         .from('search_history')
         .select('*', { count: 'exact', head: true });
 
-      // Get active users count (users who have searched at least once)
-      const { data: activeUsersData } = await supabase
+      // Get registered users count (users who have searched at least once)
+      const { data: registeredUsersData } = await supabase
         .from('users')
         .select('id', { count: 'exact' })
         .gt('search_count', 0);
@@ -54,7 +54,7 @@ export class StatsService {
 
       return {
         totalSearches: totalSearches || 0,
-        activeUsers: activeUsersData?.length || 0,
+        registeredUsers: registeredUsersData?.length || 0,
         searchesToday: searchesToday || 0,
         topKeywords
       };
@@ -63,7 +63,7 @@ export class StatsService {
       // Return default values on error
       return {
         totalSearches: 0,
-        activeUsers: 0,
+        registeredUsers: 0,
         searchesToday: 0,
         topKeywords: []
       };

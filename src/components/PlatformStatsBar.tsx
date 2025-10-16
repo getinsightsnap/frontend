@@ -4,7 +4,7 @@ import { StatsService, PlatformStats } from '../services/statsService';
 export const PlatformStatsBar: React.FC = () => {
   const [stats, setStats] = useState<PlatformStats>({
     totalSearches: 0,
-    activeUsers: 0,
+    registeredUsers: 0,
     searchesToday: 0,
     topKeywords: []
   });
@@ -68,9 +68,9 @@ export const PlatformStatsBar: React.FC = () => {
         
         <div className="text-center">
           <div className="text-3xl font-bold text-gray-900">
-            {isLoading ? '...' : formatNumber(stats.activeUsers)}
+            {isLoading ? '...' : formatNumber(stats.registeredUsers)}
           </div>
-          <div className="text-sm text-gray-600 mt-1">Active Users</div>
+          <div className="text-sm text-gray-600 mt-1">Registered Users</div>
         </div>
         
         <div className="h-12 w-px bg-gray-200"></div>
