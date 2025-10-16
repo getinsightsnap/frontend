@@ -17,30 +17,11 @@ const getEnvVar = (key: string): string => {
 const supabaseUrl = getEnvVar('SUPABASE_URL');
 const supabaseAnonKey = getEnvVar('SUPABASE_ANON_KEY');
 
-// Debug log environment variables
-console.log('🔍 Environment check:', {
-  hasUrl: !!supabaseUrl,
-  hasAnonKey: !!supabaseAnonKey,
-  urlValue: supabaseUrl ? `${supabaseUrl.substring(0, 20)}...` : 'missing',
-  keyValue: supabaseAnonKey ? `${supabaseAnonKey.substring(0, 20)}...` : 'missing'
-});
+// Use actual Supabase credentials
+const actualUrl = 'https://gytwrtduuauffcrvnlza.supabase.co';
+const actualKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5dHdydGR1dWF1ZmZjcnZubHphIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY1NzUyMDAsImV4cCI6MjA3MjE1MTIwMH0.1YUii8tAfXf7sHvKIE317uawYux6U_Ow74bqCUXkyzw';
 
-// Create Supabase client with fallback values to prevent app crash
-const fallbackUrl = 'https://placeholder.supabase.co';
-const fallbackKey = 'placeholder-key';
-
-export const supabase = createClient(
-  supabaseUrl || fallbackUrl, 
-  supabaseAnonKey || fallbackKey
-)
-
-// Debug log (remove this after testing)
-console.log('🔑 Supabase Config loaded:', {
-  hasUrl: !!supabaseUrl,
-  hasAnonKey: !!supabaseAnonKey,
-  urlLength: supabaseUrl.length,
-  anonKeyLength: supabaseAnonKey.length
-});
+export const supabase = createClient(actualUrl, actualKey)
 
 // Database types
 export interface User {
