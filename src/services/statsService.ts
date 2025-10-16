@@ -22,6 +22,7 @@ export class StatsService {
         .select('*', { count: 'exact', head: true });
       
       console.log('📊 Total searches result:', { count: totalSearches, error: totalSearchesError });
+      console.log('📊 Total searches COUNT VALUE:', totalSearches);
 
       // Get registered users count (users who have searched at least once)
       // Since many user_id entries are NULL, let's count unique non-null user_ids
@@ -31,10 +32,13 @@ export class StatsService {
         .not('user_id', 'is', null);
       
       console.log('👥 Registered users data:', { data: registeredUsersData, error: usersError });
+      console.log('👥 Registered users ARRAY LENGTH:', registeredUsersData?.length);
+      console.log('👥 Registered users FIRST 3:', registeredUsersData?.slice(0, 3));
       
       // Count unique users
       const uniqueUsers = new Set(registeredUsersData?.map(item => item.user_id) || []);
       console.log('👥 Unique users count:', uniqueUsers.size);
+      console.log('👥 Unique users SET:', Array.from(uniqueUsers).slice(0, 5));
 
       // Get searches from today
       const today = new Date();
@@ -45,6 +49,7 @@ export class StatsService {
         .gte('created_at', today.toISOString());
       
       console.log('📅 Today searches result:', { count: searchesToday, error: todayError, date: today.toISOString() });
+      console.log('📅 Today searches COUNT VALUE:', searchesToday);
 
       // Get top 5 keywords (most searched)
       const { data: searchHistoryData } = await supabase
