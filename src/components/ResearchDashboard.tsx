@@ -402,6 +402,67 @@ const ResearchDashboard: React.FC<ResearchDashboardProps> = ({
               userTier={user?.subscription_tier || 'free'}
             />
 
+            {/* Tier-specific upgrade messages */}
+            {!user && (
+              <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-indigo-600 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-sm text-gray-700">
+                      <span className="font-semibold">Sign up to get more searches and more results!</span> Anonymous users are limited to 9 results per search.
+                    </p>
+                    <button
+                      onClick={onSignUp}
+                      className="mt-2 text-sm font-medium text-indigo-600 hover:text-indigo-700 underline"
+                    >
+                      Create free account →
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {user && user.subscription_tier === 'free' && (
+              <div className="bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3 flex-1">
+                    <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm text-gray-700">
+                        <span className="font-semibold">Try Standard for more searches and increased results per platform every day!</span>
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={onPricing}
+                    className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap"
+                  >
+                    Upgrade to Standard
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {user && user.subscription_tier === 'standard' && (
+              <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3 flex-1">
+                    <AlertCircle className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm text-gray-700">
+                        <span className="font-semibold">Try Pro for unlimited searches and increased results per platform every day!</span>
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={onPricing}
+                    className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors whitespace-nowrap"
+                  >
+                    Upgrade to Pro
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Filters */}
             <div className="flex flex-wrap gap-4">
